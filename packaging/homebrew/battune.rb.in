@@ -1,0 +1,12 @@
+# Unpublished template. Substitute only after authorized, validated release.
+cask "battune" do
+  version "RELEASE_VERSION"
+  sha256 "RELEASE_SHA256"
+  url "RELEASE_DOWNLOAD_URL"
+  name "Battune"
+  desc "Native macOS battery charge controller"
+  homepage "PROJECT_HOMEPAGE"
+  depends_on macos: ">= :ventura"
+  app "Battune.app"
+  caveats "Reset charging control and unregister the helper before uninstalling."
+end
