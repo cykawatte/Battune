@@ -4,7 +4,7 @@ use crate::{
     calibration::{Calibration, Phase},
     controller::evaluate,
     model::*,
-    schedule::{self, Schedule},
+    schedule::{self, Occurrence},
 };
 #[repr(C)]
 #[derive(Clone, Copy, Default)]
@@ -204,22 +204,16 @@ pub extern "C" fn battune_calibration(mut i: CalibrationValue) -> CalibrationVal
 #[derive(Clone, Copy)]
 pub struct ScheduleValue {
     pub id: u32,
-    pub days: u32,
-    pub minute: u32,
     pub priority: i32,
+    pub age_seconds: i64,
 }
 /// Returns selected index, -1 if empty, -2 if malformed. At most 32 entries.
 /// # Safety
 /// For nonzero count, entries must point to count initialized, aligned readable
 /// ScheduleValue elements for the duration of this call. No pointer is retained.
 #[no_mangle]
-pub unsafe extern "C" fn battune_schedule(
-    entries: *const ScheduleValue,
-    count: u32,
-    weekday: u32,
-    minute: u32,
-) -> i32 {
-    if count > 32 || weekday > 6 || minute >= 1440 || (count > 0 && entries.is_null()) {
+pub unsafe extern "C" fn battune_schedule(entries: *const ScheduleValue, count: u32) -> i32 {
+    if count > 32 || (count > 0 && entries.is_null()) {
         return -2;
     }
     if count == 0 {
@@ -227,20 +221,15 @@ pub unsafe extern "C" fn battune_schedule(
     }
     // SAFETY: caller promises a valid aligned array; bounds and null checked above.
     let input = unsafe { std::slice::from_raw_parts(entries, count as usize) };
-    let mut values = Vec::with_capacity(count as usize);
-    for v in input {
-        if v.days == 0 || v.days > 127 || v.minute >= 1440 {
-            return -2;
-        }
-        values.push(Schedule {
+    let values: Vec<_> = input
+        .iter()
+        .map(|v| Occurrence {
             id: v.id,
-            days: v.days as u8,
-            minute: v.minute as u16,
             priority: v.priority,
-            configuration: Configuration::default(),
-        });
-    }
-    match schedule::active(&values, weekday as u8, minute as u16) {
+            age_seconds: v.age_seconds,
+        })
+        .collect();
+    match schedule::active_occurrence(&values) {
         Ok(Some(i)) => i as i32,
         Ok(None) => -1,
         Err(_) => -2,
@@ -271,8 +260,8 @@ mod tests {
     fn reject_null_schedule() {
         /* SAFETY: null is explicitly allowed when count=0 and rejected otherwise. */
         unsafe {
-            assert_eq!(battune_schedule(std::ptr::null(), 1, 0, 0), -2);
-            assert_eq!(battune_schedule(std::ptr::null(), 0, 0, 0), -1);
+            assert_eq!(battune_schedule(std::ptr::null(), 1), -2);
+            assert_eq!(battune_schedule(std::ptr::null(), 0), -1);
         }
     }
 }

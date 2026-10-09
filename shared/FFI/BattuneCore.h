@@ -16,11 +16,11 @@ typedef struct {
     int64_t settle, started, phase_started, now;
     int32_t soc, plugged, blocked, command, supported, error;
 } BattuneCalibration;
-typedef struct { uint32_t id, days, minute; int32_t priority; } BattuneSchedule;
+typedef struct { uint32_t id; int32_t priority; int64_t age_seconds; } BattuneSchedule;
 uint32_t battune_abi_version(void);
 BattuneOutput battune_evaluate(BattuneInput input);
 BattuneCalibration battune_calibration(BattuneCalibration input);
-int32_t battune_schedule(const BattuneSchedule *entries, uint32_t count, uint32_t weekday, uint32_t minute);
+int32_t battune_schedule(const BattuneSchedule *entries, uint32_t count);
 _Static_assert(sizeof(BattuneInput) == 52, "Input ABI");
 _Static_assert(sizeof(BattuneOutput) == 40, "Output ABI");
 _Static_assert(sizeof(BattuneCalibration) == 64, "Calibration ABI");

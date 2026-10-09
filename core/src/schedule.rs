@@ -14,7 +14,7 @@ pub fn active(entries: &[Schedule], weekday: u8, minute: u16) -> Result<Option<u
         return Err(Error::InvalidConfiguration);
     }
     let now = i32::from(weekday) * 1440 + i32::from(minute);
-    let mut best: Option<(i32, i32, u32, usize)> = None;
+    let mut best: Option<(i32, i64, u32, usize)> = None;
     for (index, e) in entries.iter().enumerate() {
         e.configuration.validate()?;
         if e.days == 0 || e.days > 127 || e.minute >= 1440 {
@@ -25,7 +25,7 @@ pub fn active(entries: &[Schedule], weekday: u8, minute: u16) -> Result<Option<u
                 continue;
             }
             let age = (now - (day * 1440 + i32::from(e.minute))).rem_euclid(10080);
-            let candidate = (age, e.priority.saturating_neg(), e.id, index);
+            let candidate = (age, -i64::from(e.priority), e.id, index);
             if best.is_none_or(|b| candidate < b) {
                 best = Some(candidate);
             }
@@ -58,4 +58,23 @@ mod tests {
         assert!(active(&[e(1, 0, 1, 0)], 0, 0).is_err());
         assert!(active(&[], 7, 0).is_err());
     }
+}
+
+#[derive(Clone, Copy)]
+pub struct Occurrence {
+    pub id: u32,
+    pub priority: i32,
+    pub age_seconds: i64,
+}
+/// The platform resolves civil time (including DST) into elapsed time. Policy
+/// selects latest activation, then higher priority, then lowest stable ID.
+pub fn active_occurrence(entries: &[Occurrence]) -> Result<Option<usize>, Error> {
+    if entries.iter().any(|e| e.age_seconds < 0) {
+        return Err(Error::InvalidConfiguration);
+    }
+    Ok(entries
+        .iter()
+        .enumerate()
+        .min_by_key(|(index, e)| (e.age_seconds, -i64::from(e.priority), e.id, *index))
+        .map(|(index, _)| index))
 }

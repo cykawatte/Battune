@@ -49,12 +49,18 @@ impl Calibration {
         if !(20..=50).contains(&low) || !(0..=7200).contains(&settle_seconds) {
             return Err(Error::InvalidConfiguration);
         }
+        if snapshot.soc.is_some_and(|soc| soc > 100) {
+            return Err(Error::InvalidSnapshot);
+        }
         if !self.active() {
             return Ok(self);
         }
         // Wall-clock rollback, unplug and the bounded overall duration abort safely.
         if snapshot.now < self.phase_started
-            || snapshot.now - self.started > 172_800
+            || snapshot
+                .now
+                .checked_sub(self.started)
+                .is_none_or(|elapsed| !(0..=172_800).contains(&elapsed))
             || snapshot.plugged != Some(true)
         {
             self.phase = Phase::Interrupted;
@@ -65,7 +71,9 @@ impl Calibration {
         }
         let phase = match (self.phase, snapshot.soc) {
             (Phase::Charging, Some(100)) => Phase::Stabilizing,
-            (Phase::Stabilizing, _) if snapshot.now - self.phase_started >= settle_seconds => {
+            (Phase::Stabilizing, _)
+                if snapshot.now.saturating_sub(self.phase_started) >= settle_seconds =>
+            {
                 Phase::Discharging
             }
             (Phase::Discharging, Some(soc)) if soc <= low => Phase::Recharging,
