@@ -1,0 +1,15 @@
+[package]
+name = "battune-core"
+version = "0.1.0-dev"
+edition = "2021"
+license = "MIT"
+
+[lib]
+crate-type = ["staticlib", "rlib"]
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = "s"
+strip = "debuginfo"
+panic = "abort"
