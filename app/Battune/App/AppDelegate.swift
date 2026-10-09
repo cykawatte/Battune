@@ -5,7 +5,8 @@ import Combine
 import SwiftUI
 import UserNotifications
 
-@MainActor final class AppDelegate: NSObject, NSApplicationDelegate {
+@MainActor
+final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPopoverDelegate {
   private var statusItem: NSStatusItem?
   private let popover = NSPopover()
   private var settingsWindow: NSWindow?
@@ -44,14 +45,12 @@ import UserNotifications
       systemSymbolName: "battery.100percent", accessibilityDescription: "Battune")
     item.button?.imagePosition = .imageLeading
     popover.behavior = .transient
-    popover.contentViewController = NSHostingController(
-      rootView: PopoverView(
-        settings: settings, coordinator: coordinator,
-        openSettings: { [weak self] in self?.showSettings() }))
-    coordinator.$snapshot.combineLatest(settings.$value).sink { [weak self] snapshot, value in
+    popover.delegate = self
+    coordinator.$snapshot.combineLatest(coordinator.$mode, settings.$value).sink {
+      [weak self] snapshot, mode, value in
       self?.statusItem?.button?.title =
         value.showPercentage ? " \(snapshot.percentage.map { "\($0)%" } ?? "—")" : ""
-      self?.statusItem?.button?.toolTip = "Battune · \(localized(coordinator.mode.localizationKey))"
+      self?.statusItem?.button?.toolTip = "Battune · \(localized(mode.localizationKey))"
     }.store(in: &subscriptions)
     coordinator.$mode.removeDuplicates().dropFirst().sink { [weak self] mode in
       guard self?.settings.value.notificationsEnabled == true,
@@ -74,7 +73,11 @@ import UserNotifications
   @objc private func togglePopover() {
     if popover.isShown {
       popover.performClose(nil)
-    } else if let button = statusItem?.button {
+    } else if let button = statusItem?.button, let coordinator {
+      popover.contentViewController = NSHostingController(
+        rootView: PopoverView(
+          settings: settings, coordinator: coordinator,
+          openSettings: { [weak self] in self?.showSettings() }))
       popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
     }
   }
@@ -90,11 +93,17 @@ import UserNotifications
       window.setContentSize(NSSize(width: 680, height: 600))
       window.center()
       window.isReleasedWhenClosed = false
+      window.delegate = self
       settingsWindow = window
     }
     NSApp.activate(ignoringOtherApps: true)
     settingsWindow?.makeKeyAndOrderFront(nil)
   }
+  func windowWillClose(_ notification: Notification) {
+    settingsWindow?.contentViewController = nil
+    settingsWindow = nil
+  }
+  func popoverDidClose(_ notification: Notification) { popover.contentViewController = nil }
   func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
     monitor?.stop()
     Task {
