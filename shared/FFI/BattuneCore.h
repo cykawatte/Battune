@@ -1,0 +1,27 @@
+#ifndef BATTUNE_CORE_H
+#define BATTUNE_CORE_H
+#include <stdint.h>
+// ABI 1. Values only, except the borrowed schedule array. No retained pointers.
+// Unknown SOC/power/lower/target = -1; unknown temperature = INT32_MIN.
+typedef struct {
+    int32_t enabled, limit, lower, thermal_enabled, resume, stop, target, soc;
+    int32_t plugged, temperature, holding, thermal_hold, capabilities;
+} BattuneInput;
+typedef struct {
+    int32_t error, mode, charging, discharge, limit, reset, holding, thermal_hold;
+    int32_t discharge_complete, sensor_missing;
+} BattuneOutput;
+typedef struct {
+    int32_t phase, low;
+    int64_t settle, started, phase_started, now;
+    int32_t soc, plugged, blocked, command, supported, error;
+} BattuneCalibration;
+typedef struct { uint32_t id, days, minute; int32_t priority; } BattuneSchedule;
+uint32_t battune_abi_version(void);
+BattuneOutput battune_evaluate(BattuneInput input);
+BattuneCalibration battune_calibration(BattuneCalibration input);
+int32_t battune_schedule(const BattuneSchedule *entries, uint32_t count, uint32_t weekday, uint32_t minute);
+_Static_assert(sizeof(BattuneInput) == 52, "Input ABI");
+_Static_assert(sizeof(BattuneOutput) == 40, "Output ABI");
+_Static_assert(sizeof(BattuneCalibration) == 64, "Calibration ABI");
+#endif
