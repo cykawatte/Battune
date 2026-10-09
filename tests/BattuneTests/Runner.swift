@@ -45,6 +45,7 @@ enum TestFailure: Error { case missingValue }
       ("Schedule bridge", { try domain.testScheduleBridge() }),
       ("Capabilities and replies", { try domain.testUnsupportedBackendAndReplyMapping() }),
       ("Calibration restart", { try domain.testCalibrationRestartInterrupted() }),
+      ("Stale transaction cancellation", { try await integration.testStaleTransactionStops() }),
       ("Acknowledged writes", { try await integration.testExecutorAcknowledgement() }),
       (
         "Hardware validation and rate limits",

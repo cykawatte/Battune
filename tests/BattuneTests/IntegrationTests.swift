@@ -5,6 +5,21 @@ import BattuneSystem
 import Foundation
 
 @MainActor final class IntegrationTests {
+  func testStaleTransactionStops() async throws {
+    let mock = MockBackend()
+    mock.writeDelayNanoseconds = 40_000_000
+    let executor = CommandExecutor(client: mock)
+    let task = Task { try await executor.apply([.limit(80), .discharge(true)]) }
+    try await Task.sleep(nanoseconds: 10_000_000)
+    executor.invalidate()
+    do {
+      try await task.value
+      expectTrue(false)
+    } catch { expectTrue(error is CancellationError) }
+    expectEqual(mock.commands, [.limit(80)])
+    try await executor.apply([.limit(80)])
+    expectEqual(mock.commands.count, 2)
+  }
   func testExecutorAcknowledgement() async throws {
     let mock = MockBackend()
     let executor = CommandExecutor(client: mock)
@@ -74,6 +89,9 @@ import Foundation
     store.append(
       BatterySnapshot(percentage: 80, pluggedIn: true, timestamp: date.addingTimeInterval(600)))
     expectEqual(store.samples.count, 1)
+    store.append(
+      BatterySnapshot(percentage: 80, pluggedIn: false, timestamp: date.addingTimeInterval(601)))
+    expectEqual(store.samples.count, 2)
     expectFalse(FileManager.default.fileExists(atPath: url.path))
   }
   func testDSTAndTimezone() throws {

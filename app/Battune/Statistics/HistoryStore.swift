@@ -19,7 +19,12 @@ public final class HistoryStore {
   }
   public func append(_ snapshot: BatterySnapshot) {
     guard snapshot.percentage != nil else { return }
-    if let lastSample, snapshot.timestamp.timeIntervalSince(lastSample) < 300 { return }
+    let transition =
+      samples.last.map { $0.charging != snapshot.charging || $0.pluggedIn != snapshot.pluggedIn }
+      ?? false
+    if let lastSample, snapshot.timestamp.timeIntervalSince(lastSample) < 300 && !transition {
+      return
+    }
     lastSample = snapshot.timestamp
     if let last = samples.last, last.percentage == snapshot.percentage,
       last.charging == snapshot.charging,

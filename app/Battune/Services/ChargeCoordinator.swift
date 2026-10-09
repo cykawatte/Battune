@@ -222,6 +222,7 @@ import OSLog
     dischargeTarget = nil
     needsReset = true
     revision += 1
+    executor.invalidate()
     refresh()
   }
   public func reset() {

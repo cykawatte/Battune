@@ -44,7 +44,7 @@
 "history_chart" = "Batterieladung im Zeitverlauf";
 "history_empty" = "Der Batterieverlauf erscheint bei Messwertänderungen.";
 "history_error" = "Der Verlauf konnte nicht gelesen oder gespeichert werden. Die Steuerung bleibt verfügbar.";
-"history_retention" = "Bis zu 30 Tage · mindestens 5 Minuten zwischen Messpunkten";
+"history_retention" = "Bis zu 30 Tage · 5-Minuten-Messpunkte und Stromwechsel";
 "hour" = "Stunde";
 "language" = "Sprache";
 "language_restart" = "Sprachänderung speichern und Battune neu starten.";

@@ -14,6 +14,7 @@ final class MockBackend: BatteryHardwareBackend, HardwareClient, BatteryProvidin
   var commands: [HardwareCommand] { commandLock.withLock { recordedCommands } }
   var failure: BattuneError?
   var disconnected = false
+  var writeDelayNanoseconds: UInt64 = 0
   func capabilities() -> Capabilities { supported }
   func readBatterySnapshot() -> BatterySnapshot { snapshot }
   func read() -> BatterySnapshot { snapshot }
@@ -27,6 +28,7 @@ final class MockBackend: BatteryHardwareBackend, HardwareClient, BatteryProvidin
     return HelperStatus(backend: name, capabilities: supported)
   }
   func perform(_ command: HardwareCommand) async throws {
+    if writeDelayNanoseconds > 0 { try await Task.sleep(nanoseconds: writeDelayNanoseconds) }
     if disconnected { throw BattuneError.helperUnavailable }
     if let failure { throw failure }
     commandLock.withLock { recordedCommands.append(command) }

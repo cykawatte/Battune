@@ -44,7 +44,7 @@
 "history_chart" = "Battery percentage over time";
 "history_empty" = "Battery history appears as values change.";
 "history_error" = "History could not be read or written. Control remains available.";
-"history_retention" = "Up to 30 days · samples at least 5 minutes apart";
+"history_retention" = "Up to 30 days · 5-minute samples and power transitions";
 "hour" = "Hour";
 "language" = "Language";
 "language_restart" = "Save and restart Battune to apply language changes.";
