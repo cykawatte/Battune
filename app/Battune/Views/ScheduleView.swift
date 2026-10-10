@@ -32,28 +32,30 @@ struct ScheduleView: View {
                   ).toggleStyle(.button)
                 }
               }
-              HStack {
-                Stepper(
-                  "\(localized("hour")): \(entry.minute / 60)",
-                  value: Binding(
-                    get: { entry.minute / 60 }, set: { entry.minute = $0 * 60 + entry.minute % 60 }),
-                  in: 0...23)
-                Stepper(
-                  "\(localized("minute")): \(entry.minute % 60)",
-                  value: Binding(
-                    get: { entry.minute % 60 }, set: { entry.minute = entry.minute / 60 * 60 + $0 }),
-                  in: 0...59)
+              SettingsSlider(
+                "hour",
+                value: Binding(
+                  get: { entry.minute / 60 }, set: { entry.minute = $0 * 60 + entry.minute % 60 }),
+                in: 0...23, unit: "")
+              SettingsSlider(
+                "minute",
+                value: Binding(
+                  get: { entry.minute % 60 }, set: { entry.minute = entry.minute / 60 * 60 + $0 }),
+                in: 0...59, unit: "")
+              SettingsSlider(
+                "charge_limit", value: $entry.settings.limit,
+                in: (entry.settings.sailing ? 21 : 20)...100
+              )
+              .onChange(of: entry.settings.limit) { limit in
+                entry.settings.lower = min(entry.settings.lower, max(20, limit - 1))
               }
-              Stepper(
-                "\(localized("charge_limit")): \(entry.settings.limit)%",
-                value: $entry.settings.limit,
-                in: 20...100)
-              Toggle(localized("sailing"), isOn: $entry.settings.sailing)
+              Toggle(localized("sailing"), isOn: $entry.settings.sailing).disabled(
+                entry.settings.limit <= 20)
               if entry.settings.sailing {
-                Stepper(
-                  "\(localized("lower_limit")): \(entry.settings.lower)%",
-                  value: $entry.settings.lower,
-                  in: 20...99)
+                SettingsSlider(
+                  "lower_limit", value: $entry.settings.lower,
+                  in: 20...max(21, entry.settings.limit - 1)
+                ).disabled(entry.settings.limit <= 21)
               }
               Toggle(
                 localized("scheduled_discharge"),
@@ -61,14 +63,13 @@ struct ScheduleView: View {
                   get: { entry.dischargeTarget != nil },
                   set: { entry.dischargeTarget = $0 ? 75 : nil }))
               if entry.dischargeTarget != nil {
-                Stepper(
-                  "\(localized("target")): \(entry.dischargeTarget ?? 75)%",
+                SettingsSlider(
+                  "target",
                   value: Binding(
                     get: { entry.dischargeTarget ?? 75 }, set: { entry.dischargeTarget = $0 }),
                   in: 20...100)
               }
-              Stepper(
-                "\(localized("priority")): \(entry.priority)", value: $entry.priority, in: 0...100)
+              SettingsSlider("priority", value: $entry.priority, in: 0...100, unit: "")
             }.padding(6)
           }
         }

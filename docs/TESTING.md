@@ -43,6 +43,7 @@ open build/debug/Battune.app --args --diagnostics
 
 Debug opens the diagnostics tab directly. It reads snapshot/capability/backend
 information and exposes the same explicit, validated reset and workflow controls.
+In this mode, Command-Shift-P opens the actual menu-bar panel for UI inspection.
 It performs no automatic write or helper installation. Release ignores this flag
 and excludes the developer diagnostic label; normal user diagnostics remain available.
 
@@ -59,6 +60,27 @@ and excludes the developer diagnostic label; normal user diagnostics remain avai
 7. Check unsupported discharge/calibration/reset buttons are disabled and explained.
 8. Enable/disable history and test deletion only with disposable test history.
 9. Launch at login and notification permission require explicit user choices.
+
+## Menu-bar and slider regression checks
+
+- Open the menu panel repeatedly; its title and padding must stay below the menu
+  bar, with no clipped content. Check small displays and multiple display positions.
+- Click the desktop, another app, and Battune settings; the panel must close.
+  Also check Escape, application switching, and clicking the status item twice.
+  Global mouse monitoring must not request Accessibility permission.
+- Check the Battune B/slider template mark in light and dark menu bars.
+- Drag charge, sailing, temperature, schedule, and workflow sliders. Values should
+  update in whole units; sailing lower < upper and resume temperature < stop.
+  Restore original values after testing.
+- Confirm that the unavailable-control explanation explicitly says these settings
+  do not yet affect charging.
+
+2026-10-10 local QA: Debug popover header and full-width settings sliders inspected;
+Escape and application switching verified. The vector logo was rendered and
+visually inspected. Dragging 80% down to 58% clamped the
+resume threshold from 75% to 57%. Test edits were discarded. The UI automation
+uses background clicks in other applications, so physical outside-click and
+menu-bar-icon checks remain manual checks on the user desktop.
 
 ## Hardware validation gate
 

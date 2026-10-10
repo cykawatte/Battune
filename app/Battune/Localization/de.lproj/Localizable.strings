@@ -11,6 +11,7 @@
 "charge_limit" = "Ladegrenze";
 "charging" = "Laden";
 "clear_history" = "Verlauf löschen";
+"control_unavailable" = "Ladesteuerung in dieser Version noch nicht verfügbar.";
 "copy_diagnostics" = "Diagnose kopieren";
 "cycles" = "Ladezyklen";
 "day.0" = "Mo";
@@ -105,5 +106,5 @@
 "time" = "Zeit";
 "unknown" = "Unbekannt";
 "unsupported" = "Auf diesem Mac nicht unterstützt";
-"unsupported_detail" = "Diese Entwicklungsversion liest Batteriedaten. Hardwaresteuerung benötigt ein am Gerät geprüftes Backend und einen signierten Helper. Einstellungen lassen sich bereits vorbereiten.";
+"unsupported_detail" = "Diese Version liest nur Batteriedaten. macOS steuert das Laden weiterhin selbst. Der Schalter lässt sich noch nicht aktivieren, weil die Hardware-Ladesteuerung noch nicht implementiert ist. Eine Helper-Installation allein schaltet sie nicht frei. Du kannst Werte speichern; sie beeinflussen das Laden noch nicht.";
 "welcome" = "Willkommen bei Battune";

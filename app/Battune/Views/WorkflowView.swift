@@ -10,7 +10,7 @@ struct WorkflowView: View {
     Form {
       Section(localized("discharge")) {
         Text(localized("discharge_explanation"))
-        Stepper("\(localized("target")): \(target)%", value: $target, in: 20...100)
+        SettingsSlider("target", value: $target, in: 20...100)
         Button(localized("start_discharge")) { confirmingDischarge = true }
           .disabled(
             !coordinator.capabilities.forceDischarge || coordinator.calibration.active

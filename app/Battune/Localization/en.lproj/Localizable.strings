@@ -11,6 +11,7 @@
 "charge_limit" = "Charge limit";
 "charging" = "Charging";
 "clear_history" = "Delete history";
+"control_unavailable" = "Charging control is not available in this version.";
 "copy_diagnostics" = "Copy diagnostics";
 "cycles" = "Cycle count";
 "day.0" = "Mon";
@@ -105,5 +106,5 @@
 "time" = "Time";
 "unknown" = "Unknown";
 "unsupported" = "Not supported on this Mac";
-"unsupported_detail" = "This development build reads battery data. Hardware writes require a physically validated backend and a signed helper. Preferences can be prepared now.";
+"unsupported_detail" = "This version only reads battery data. macOS continues to manage charging. The switch cannot be enabled yet because hardware charging control is not implemented. Installing the helper alone does not enable it. You can save preferences, but they do not affect charging yet.";
 "welcome" = "Welcome to Battune";

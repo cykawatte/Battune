@@ -92,23 +92,35 @@ struct SettingsView: View {
         if !coordinator.capabilities.canControl {
           Text(localized("unsupported_detail")).foregroundStyle(.secondary)
         }
-        Stepper(
-          "\(localized("charge_limit")): \(settings.value.charge.limit)%",
-          value: $settings.value.charge.limit, in: 20...100)
+        SettingsSlider(
+          "charge_limit", value: $settings.value.charge.limit,
+          in: (settings.value.charge.sailing ? 21 : 20)...100
+        )
+        .onChange(of: settings.value.charge.limit) { limit in
+          settings.value.charge.lower = min(settings.value.charge.lower, max(20, limit - 1))
+        }
         Toggle(localized("sailing"), isOn: $settings.value.charge.sailing)
-        Stepper(
-          "\(localized("lower_limit")): \(settings.value.charge.lower)%",
-          value: $settings.value.charge.lower, in: 20...99
-        ).disabled(!settings.value.charge.sailing)
+          .disabled(settings.value.charge.limit <= 20)
+        SettingsSlider(
+          "lower_limit", value: $settings.value.charge.lower,
+          in: 20...max(21, settings.value.charge.limit - 1)
+        )
+        .disabled(!settings.value.charge.sailing || settings.value.charge.limit <= 21)
       }
       Section(localized("thermal")) {
         Toggle(localized("enable_thermal"), isOn: $settings.value.charge.thermal)
-        Stepper(
-          "\(localized("stop_temperature")): \(Int(settings.value.charge.stopTemperature)) °C",
-          value: $settings.value.charge.stopTemperature, in: 21...50)
-        Stepper(
-          "\(localized("resume_temperature")): \(Int(settings.value.charge.resumeTemperature)) °C",
-          value: $settings.value.charge.resumeTemperature, in: 20...49)
+        SettingsSlider(
+          "stop_temperature", value: $settings.value.charge.stopTemperature, in: 21...50
+        )
+        .onChange(of: settings.value.charge.stopTemperature) { stop in
+          settings.value.charge.resumeTemperature = min(
+            settings.value.charge.resumeTemperature, stop - 1)
+        }
+        SettingsSlider(
+          "resume_temperature", value: $settings.value.charge.resumeTemperature,
+          in: 20...max(21, settings.value.charge.stopTemperature - 1)
+        )
+        .disabled(settings.value.charge.stopTemperature <= 21)
         Text(localized("thermal_note")).font(.caption).foregroundStyle(.secondary)
       }
     }.formStyle(.grouped)

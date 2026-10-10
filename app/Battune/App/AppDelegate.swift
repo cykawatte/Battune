@@ -6,9 +6,9 @@ import SwiftUI
 import UserNotifications
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPopoverDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
   private var statusItem: NSStatusItem?
-  private let popover = NSPopover()
+  private let popover = MenuBarPopover()
   private var settingsWindow: NSWindow?
   private var monitor: PowerMonitor?
   private let settings = SettingsModel()
@@ -35,6 +35,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPo
       title: localized("settings"), action: #selector(showSettings), keyEquivalent: ",")
     preferences.target = self
     appMenu.addItem(preferences)
+    #if DEBUG
+      if diagnosticLaunch {
+        let preview = NSMenuItem(
+          title: "Show Menu Bar Panel", action: #selector(togglePopover), keyEquivalent: "p")
+        preview.keyEquivalentModifierMask = [.command, .shift]
+        preview.target = self
+        appMenu.addItem(preview)
+      }
+    #endif
     appMenu.addItem(.separator())
     let quit = NSMenuItem(
       title: localized("quit"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
@@ -48,11 +57,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPo
     statusItem = item
     item.button?.target = self
     item.button?.action = #selector(togglePopover)
-    item.button?.image = NSImage(
-      systemSymbolName: "battery.100percent", accessibilityDescription: "Battune")
+    item.button?.image = BattuneMark.menuBarImage
     item.button?.imagePosition = .imageLeading
-    popover.behavior = .transient
-    popover.delegate = self
     coordinator.$snapshot.combineLatest(coordinator.$mode, settings.$value).sink {
       [weak self] snapshot, mode, value in
       self?.statusItem?.button?.title =
@@ -78,18 +84,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPo
   }
   private var historyLoadFailed = false
   @objc private func togglePopover() {
-    if popover.isShown {
-      popover.performClose(nil)
-    } else if let button = statusItem?.button, let coordinator {
-      popover.contentViewController = NSHostingController(
-        rootView: PopoverView(
-          settings: settings, coordinator: coordinator,
-          openSettings: { [weak self] in self?.showSettings() }))
-      popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+    guard let button = statusItem?.button, let coordinator else { return }
+    popover.toggle(from: button) {
+      PopoverView(
+        settings: settings, coordinator: coordinator,
+        openSettings: { [weak self] in self?.showSettings() })
     }
   }
   @objc private func showSettings() {
-    popover.performClose(nil)
+    popover.close()
     if settingsWindow == nil, let coordinator {
       let root = SettingsView(
         settings: settings, coordinator: coordinator, history: history,
@@ -110,8 +113,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPo
     settingsWindow?.contentViewController = nil
     settingsWindow = nil
   }
-  func popoverDidClose(_ notification: Notification) { popover.contentViewController = nil }
   func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+    popover.close()
     monitor?.stop()
     Task {
       await coordinator?.shutdown()

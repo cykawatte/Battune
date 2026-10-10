@@ -29,22 +29,20 @@ struct PopoverView: View {
       }
       Text(localized(coordinator.mode.localizationKey)).font(.headline)
       if !coordinator.capabilities.canControl {
-        Label(localized("unsupported"), systemImage: "info.circle").font(.caption).foregroundStyle(
-          .secondary)
+        Label(localized("control_unavailable"), systemImage: "info.circle").font(.caption)
+          .foregroundStyle(
+            .secondary)
       }
       Divider()
-      HStack {
-        Text(localized("charge_limit"))
-        Spacer()
-        Text("\(settings.value.charge.limit)%").monospacedDigit()
-      }
-      Slider(
-        value: Binding(
-          get: { Double(settings.value.charge.limit) },
-          set: { settings.value.charge.limit = Int($0) }), in: 20...100, step: 1
+      SettingsSlider(
+        "charge_limit", value: $settings.value.charge.limit,
+        in: (settings.value.charge.sailing ? 21 : 20)...100
       ) { editing in
         if !editing, settings.save() { coordinator.updateSettings(settings.value) }
-      }.accessibilityLabel(localized("charge_limit"))
+      }
+      .onChange(of: settings.value.charge.limit) { limit in
+        settings.value.charge.lower = min(settings.value.charge.lower, max(20, limit - 1))
+      }
       HStack {
         Text(localized("sailing"))
         Spacer()
@@ -64,6 +62,6 @@ struct PopoverView: View {
         Spacer()
         Button(localized("quit")) { NSApp.terminate(nil) }.keyboardShortcut("q")
       }
-    }.padding(20).frame(width: 320)
+    }.padding(20).frame(width: 340).fixedSize(horizontal: false, vertical: true)
   }
 }
