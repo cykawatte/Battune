@@ -27,3 +27,6 @@ xcuserdata/
 *.p8
 *.mobileprovision
 *.log
+*.pem
+*.key
+*.pfx

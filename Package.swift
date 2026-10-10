@@ -4,7 +4,12 @@ import Foundation
 import PackageDescription
 
 let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().path
-let arch = ProcessInfo.processInfo.environment["BATTUNE_ARCH"] ?? "arm64"
+#if arch(arm64)
+let hostArchitecture = "arm64"
+#else
+let hostArchitecture = "x86_64"
+#endif
+let arch = ProcessInfo.processInfo.environment["BATTUNE_ARCH"] ?? hostArchitecture
 let configuration = ProcessInfo.processInfo.environment["BATTUNE_CONFIGURATION"] ?? "debug"
 let package = Package(
   name: "Battune", defaultLocalization: "en", platforms: [.macOS(.v13)],

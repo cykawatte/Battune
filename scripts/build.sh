@@ -18,6 +18,7 @@ done
 app="build/$configuration/Battune.app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources" "$app/Contents/Library/LaunchDaemons" "$app/Contents/Library/HelperTools"
 cp packaging/Info.plist "$app/Contents/Info.plist"
+for notice in LICENSE THIRD_PARTY_NOTICES.md PRIVACY.md; do cp "$notice" "$app/Contents/Resources/"; done
 cp packaging/org.battune.helper.plist "$app/Contents/Library/LaunchDaemons/"
 # Embed localized resources in the standard signed resource directory.
 rm -rf "$app/Contents/Resources/Battune_Battune.bundle"

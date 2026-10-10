@@ -15,6 +15,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPo
   private let history = HistoryStore(url: HistoryStore.defaultURL)
   private var coordinator: ChargeCoordinator?
   private var subscriptions = Set<AnyCancellable>()
+  private var diagnosticLaunch: Bool {
+    #if DEBUG
+      return CommandLine.arguments.contains("--diagnostics")
+    #else
+      return false
+    #endif
+  }
   func applicationDidFinishLaunching(_ notification: Notification) {
     do { try history.load() } catch {  // History failure is reported in the statistics window.
       historyLoadFailed = true
@@ -67,7 +74,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPo
       wake: { coordinator.didWake() })
     monitor?.start()
     coordinator.refresh()
-    if !settings.value.onboardingComplete { showSettings() }
+    if !settings.value.onboardingComplete || diagnosticLaunch { showSettings() }
   }
   private var historyLoadFailed = false
   @objc private func togglePopover() {
@@ -86,7 +93,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSPo
     if settingsWindow == nil, let coordinator {
       let root = SettingsView(
         settings: settings, coordinator: coordinator, history: history,
-        historyLoadFailed: historyLoadFailed)
+        historyLoadFailed: historyLoadFailed, initialTab: diagnosticLaunch ? 5 : 0)
       let window = NSWindow(contentViewController: NSHostingController(rootView: root))
       window.title = "Battune — \(localized("settings"))"
       window.styleMask = [.titled, .closable, .miniaturizable, .resizable]

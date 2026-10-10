@@ -9,6 +9,7 @@ struct SettingsView: View {
   @ObservedObject var coordinator: ChargeCoordinator
   let history: HistoryStore
   let historyLoadFailed: Bool
+  var initialTab = 0
   @ViewState private var selected = 0
   @ViewState private var notificationError = false
   var body: some View {
@@ -50,7 +51,7 @@ struct SettingsView: View {
           .buttonStyle(
             .borderedProminent)
       }.padding(16)
-    }.frame(minWidth: 620, minHeight: 540)
+    }.frame(minWidth: 620, minHeight: 540).onAppear { selected = initialTab }
   }
   private var general: some View {
     Form {
