@@ -13,7 +13,7 @@ write/readback cycle and restoration of the previous limit. On the tested Mac16,
 (macOS 27.0.1), the supported limits are **80, 85, 90, 95 and 100%**. No root helper
 or Apple developer identity is required for this native path. The advanced **CHIE adapter mode** additionally implements 20–100% limits,
 forced discharge and calibration. It needs an administrator-approved helper and
-an explicit off/on/readback test. That physical test is still pending; see
+an explicit off/on/readback test. That off/on/readback test and local helper installation succeeded on this host; see
 [features and permissions](docs/FEATURE_PERMISSIONS.md).
 
 ## Features
@@ -28,7 +28,7 @@ an explicit off/on/readback test. That physical test is still pending; see
 - Validated preferences, launch at login, onboarding and reset/recovery UI.
 - XPC authentication, argument validation, write deduplication, rate limits and expiring control leases.
 
-The native write/restore path has been tested on the local Mac. Advanced workflows and adapter failures have been exercised against a **test-only transport**; real privileged adapter validation is pending.
+The native write/restore path has been tested on the local Mac. Advanced workflows and adapter failures have been exercised against a **test-only transport**; real privileged adapter off/on/readback and restoration are also verified locally.
 Unsupported real operations are displayed as unsupported, never reported as successful.
 
 ## Screenshots
@@ -127,7 +127,7 @@ network access. History and settings stay local. [Privacy policy](PRIVACY.md).
   changes. Only the values reported by macOS are accepted.
 - Direct SMC writes, forced discharge, custom thermal thresholds and sailing
   remain unsupported by the native backend.
-- Local exact-hash helper installation and real CHIE switching await user approval; published Team-ID signing also remains untested.
+- Local helper installation, exact-hash XPC and CHIE switching were verified with approval. Sustained discharge/calibration, sleep/crash restoration and published Team-ID signing remain untested.
 - macOS 13 and Intel runtime behavior require testing on those machines.
 - Sensor fields vary by device. This host now exposes temperature through SMC and actual mAh capacities in nested BatteryData.
 - Advanced control restores AC input on sleep and requires another validation after wake. Calibration interrupts on sleep/restart; it does not resume automatically.

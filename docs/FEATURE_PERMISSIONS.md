@@ -1,6 +1,13 @@
 # Funktionsumfang und Freigaben — 2026-10-11
 
-## Bereit zur Prüfung
+## Aktueller Nachweis
+
+Administrator-Installation und der ausdrücklich genehmigte CHIE-Aus-/Ein-Test
+wurden am 2026-10-11 erfolgreich durchgeführt. Beide Zustände wurden zurückgelesen;
+danach waren Netzbetrieb und Laden wieder aktiv. Der Helper ist authentifiziert
+und läuft als Root. [Prüfprotokoll](HARDWARE_VALIDATION_2026-10-11.md).
+
+## Funktionsumfang
 
 Die App implementiert zwei Steuerungswege. Native Ladegrenzen bleiben ohne eigenen
 Root-Helper nutzbar. Der erweiterte Modus hat eine echte, eng begrenzte
@@ -43,8 +50,8 @@ Mac16,12, arm64, macOS 27.0.1 (26A434), Benutzerprozess ohne Root:
   ein CSV-Export wurde direkt aus der App erzeugt und geprüft.
 
 `NotPrivileged` im Benutzerprozess beweist nicht, dass auch Root gesperrt wird.
-Ob Root ausreicht oder eine private Apple-Berechtigung erforderlich ist, ist vor
-dem genehmigten Test unbekannt. Apple-interne Entitlements lassen sich nicht mit
+Für CHIE ist nun nachgewiesen, dass Root ausreicht. Für die anderen verweigerten
+Schlüssel wurde kein Root-Test durchgeführt; deren Anforderungen bleiben unbekannt. Apple-interne Entitlements lassen sich nicht mit
 einem normalen Berechtigungsdialog erteilen. Battune verändert weder SIP noch
 andere Systemschutzregeln. Der implementierte Schreibweg verwendet nur `CHIE`,
 nicht die verweigerten direkten Ladeschlüssel. Fehler dieses Schreibwegs werden
@@ -85,6 +92,7 @@ Das Skript stoppt den Dienst, stellt den von Battune belegten Adapterzustand
 wieder her und entfernt erst danach die festen Installationsdateien. Bei einem
 Wiederherstellungsfehler bleiben Helper und Journal zur Reparatur erhalten.
 
-Noch nicht ausgeführt: privilegierte Installation, realer CHIE-Schreibtest,
-physischer Entlade-/Kalibrierungszyklus und Langzeittest. Diese Schritte warten
-auf die ausdrücklich angeforderte Entscheidung des Benutzers.
+Erfolgreich ausgeführt: privilegierte Installation, authentifizierte XPC-Verbindung
+und realer CHIE-Aus-/Ein-Test mit Rücklesen und Wiederherstellung. Noch offen sind
+physische Entlade-/Kalibrierungszyklen, Schlaf-/Crash-Wiederherstellung und Langzeittests.
+Der erweiterte Modus bleibt nach diesem begrenzten Test ausgeschaltet.

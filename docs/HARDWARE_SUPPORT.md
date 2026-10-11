@@ -4,7 +4,7 @@ Do not equate compilation, simulation and physical charging validation.
 
 | Architecture | Device | macOS | Battery read | Charge limit | Forced discharge | Temperature | Test status |
 |---|---|---|---|---|---|---|---|
-| arm64 | Mac16,12 | 27.0.1 (26A434) | Percentage, cycles, mAh capacities, voltage/current/power observed | Native 80/85/90/95/100% | Implemented in adapter mode; privileged test pending | TB0T read observed | Real native writes, readback and restoration tested; full AC charge cycle pending |
+| arm64 | Mac16,12 | 27.0.1 (26A434) | Percentage, cycles, mAh capacities, voltage/current/power observed | Native 80/85/90/95/100% | Adapter off/on/readback verified; sustained discharge pending | TB0T read observed | Real native writes, readback and restoration tested; full AC charge cycle pending |
 | arm64 | Other models | 13+ | Capability detection implemented | Native runtime probe; untested | Unsupported | Detected when available | Untested physical hardware |
 | x86_64 | Intel Macs | 13+ | Capability detection implemented | Native runtime probe; untested | Unsupported | Detected when available | Cross-build only; physical hardware untested |
 | Host | Test-only MockBackend | N/A | Simulated | Simulated | Simulated | Simulated | Automated controller, helper gate and integration tests |
@@ -15,8 +15,8 @@ Other Apple Silicon devices use the same capability probe, but have not been
 physically tested. Intel support is not claimed.
 
 The advanced arm64 helper now uses AdapterBackend and a fixed CHIE adapter gate.
-Capabilities require explicit successful hardware validation. Local root installation
-and physical CHIE writes are pending user approval. Intel remains read-only.
+Capabilities require explicit successful hardware validation. Local root installation, production XPC and physical CHIE off/on/readback succeeded
+with explicit approval on 2026-10-11. Intel remains read-only.
 [Exact read results and permission gates](FEATURE_PERMISSIONS.md).
 
 Actual mAh capacity is read from AppleRaw fields or nested BatteryData, never
@@ -64,3 +64,11 @@ The optional private PowerUI API is not a public Apple SDK contract. Battune
 validates method return/argument types before use and disables the path on an ABI
 mismatch. System thermal protection remains active. macOS may occasionally charge
 to 100% for battery calibration; Battune does not claim to override that behavior.
+
+## Approved adapter validation — 2026-10-11
+
+Administrator installation, root daemon, exact-signature XPC, CHIE off/on/readback
+and final enabled adapter state are now verified on the host. macOS reported AC
+Power and charging after the test; no recovery journal remained. See the
+[execution record](HARDWARE_VALIDATION_2026-10-11.md). Long discharge/calibration,
+physical sleep/crash restoration and other devices remain untested.

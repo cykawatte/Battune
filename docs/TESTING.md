@@ -139,3 +139,12 @@ pkgbuild emits four `write: Permission denied` metadata warnings yet returns
 success; expanded payload, root ownership/modes, scripts and signatures were
 inspected. Actual installer execution remains an explicit approval/validation gate.
 The CLT x86_64 compatibility archive and native-build deprecation warnings remain.
+
+## Approved physical follow-up
+
+Apple Installer successfully installed the prepared package on 2026-10-11.
+Production exact-hash XPC and the root CHIE off/on/readback test succeeded.
+Independent final reads confirmed adapter enabled and AC connected; macOS
+reported charging. No owned recovery journal remained. This resolves installer
+execution and the bounded switching test, not full-cycle or sleep/crash validation.
+See HARDWARE_VALIDATION_2026-10-11.md for scope and evidence.

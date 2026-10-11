@@ -64,9 +64,10 @@ recovery, reserve/sleep handling, restored-state cache invalidation, full simula
 calibration, exact-hash requirement syntax, controller routing and existing
 native/XPC/policy safety. The app's diagnostic probe is read-only.
 
-Privileged installation, real authenticated local-pinned XPC, real CHIE off/on,
-physical charging/discharge, helper kill/restart and sleep restoration await
-user approval and hardware validation. Neither compilation nor mocked success
+Privileged installation, real authenticated local-pinned XPC and real CHIE
+off/on/readback succeeded with explicit user approval on 2026-10-11. Physical
+full charging/discharge cycles, helper kill/restart and sleep restoration remain
+unvalidated. See HARDWARE_VALIDATION_2026-10-11.md. Neither compilation nor mocked success
 is advertised as that evidence. No public-release readiness is claimed.
 
 References: [Apple SMAppService](https://developer.apple.com/documentation/servicemanagement/smappservice),
