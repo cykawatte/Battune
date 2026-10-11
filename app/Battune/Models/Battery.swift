@@ -77,7 +77,7 @@ public struct HelperStatus: Codable, Sendable {
   public let controlGeneration: UInt64?
   public let hardwareDiagnostic: String?
   public init(
-    version: String = "0.1.0-dev", backend: String, capabilities: Capabilities,
+    version: String = "0.1.0-beta.1", backend: String, capabilities: Capabilities,
     confirmedLimit: Int? = nil, controlGeneration: UInt64? = nil, hardwareDiagnostic: String? = nil
   ) {
     self.version = version

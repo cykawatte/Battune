@@ -12,19 +12,9 @@ struct SettingsView: View {
   var initialTab = 0
   @ViewState private var selected = 0
   @ViewState private var notificationError = false
+  @ViewState private var showTutorial = false
   var body: some View {
     VStack(spacing: 0) {
-      if !settings.value.onboardingComplete {
-        VStack(alignment: .leading, spacing: 12) {
-          Text(localized("welcome")).font(.title2.bold())
-          Text(localized("onboarding_body"))
-          Button(localized("start_monitoring")) {
-            settings.value.onboardingComplete = true
-            save()
-          }.buttonStyle(.borderedProminent)
-        }.padding(24)
-        Divider()
-      }
       TabView(selection: $selected) {
         general.tabItem { Label(localized("general"), systemImage: "gearshape") }.tag(0)
         charging.tabItem { Label(localized("charging"), systemImage: "battery.75percent") }.tag(1)
@@ -56,6 +46,17 @@ struct SettingsView: View {
       }.padding(16)
     }.frame(minWidth: 620, minHeight: 540).onAppear {
       selected = initialTab == 5 ? 5 : (settings.value.setupComplete == true ? initialTab : 6)
+      showTutorial = settings.value.tutorialVersion != 1
+    }.sheet(isPresented: $showTutorial) {
+      TutorialView { setup in
+        settings.value.tutorialVersion = 1
+        settings.value.onboardingComplete = true
+        guard settings.save() else { return false }
+        coordinator.updateSettings(settings.value)
+        selected = setup ? 6 : 0
+        showTutorial = false
+        return true
+      }
     }
   }
   private var general: some View {
@@ -86,6 +87,8 @@ struct SettingsView: View {
         Text("Deutsch").tag("de")
       }
       Text(localized("language_restart")).font(.caption).foregroundStyle(.secondary)
+      Button(localized("tour_replay")) { showTutorial = true }
+      Text("Battune 0.1.0-beta.1").font(.caption).foregroundStyle(.secondary)
       Text(localized("privacy_note")).font(.callout).padding(.top)
     }.formStyle(.grouped)
   }

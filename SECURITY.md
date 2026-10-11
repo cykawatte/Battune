@@ -1,6 +1,6 @@
 # Security policy
 
-Battune 0.1.0-dev is development software, not a validated public release.
+Battune 0.1.0-beta.1 is beta software, not a final production release.
 Native macOS charge-limit writes and restoration are implemented with readback
 verification. Direct SMC, forced-discharge and charging-gate mutations remain
 unsupported. The private OS interface is checked at runtime and may change.

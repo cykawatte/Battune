@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.0-beta.1 — 2026-10-11
+
+- First installable beta: universal app and matching privileged helper in one installer.
+- Battune app icon, separate helper icon and branded installer.
+- Short German/English first-run tutorial with privileged-mode setup and replay.
+- Advanced 20–100% limits, discharge target, calibration, statistics and diagnostics.
+- Exact app/helper signature pairing, upgrade recovery and package validation in CI.
+- Beta remains ad-hoc signed; notarization, Intel runtime and full hardware cycles remain final-release gates.
+
 ## Native hardware control — 2026-10-11
 
 - Real macOS charge-limit writes through the OS PowerUI service, without a root

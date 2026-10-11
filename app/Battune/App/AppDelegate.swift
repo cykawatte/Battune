@@ -81,7 +81,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     monitor?.start()
     coordinator.refresh()
     if !settings.value.onboardingComplete || settings.value.setupComplete != true
-      || diagnosticLaunch
+      || settings.value.tutorialVersion != 1 || diagnosticLaunch
     {
       showSettings()
     }

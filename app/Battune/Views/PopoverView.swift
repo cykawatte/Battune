@@ -12,7 +12,7 @@ struct PopoverView: View {
       HStack {
         Text("Battune").font(.headline)
         Spacer()
-        Text("0.1.0-dev").font(.caption).foregroundStyle(.secondary)
+        Text("0.1.0-beta.1").font(.caption).foregroundStyle(.secondary)
       }
       HStack(alignment: .firstTextBaseline) {
         Text(coordinator.snapshot.percentage.map { "\($0)%" } ?? "—").font(

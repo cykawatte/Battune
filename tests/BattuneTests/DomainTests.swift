@@ -30,6 +30,17 @@ import Foundation
     settings.charge.limit = 85
     try store.save(settings)
     expectEqual(try store.load(), settings)
+    // Existing development preferences must survive the optional tutorial marker.
+    settings.onboardingComplete = true
+    settings.controlEnabled = true
+    let legacy = try JSONEncoder().encode(settings)
+    let migrated = try JSONDecoder().decode(AppSettings.self, from: legacy)
+    expectTrue(migrated.tutorialVersion == nil)
+    expectTrue(migrated.controlEnabled)
+    expectEqual(migrated.charge.limit, 85)
+    settings.tutorialVersion = 1
+    try store.save(settings)
+    expectEqual(try store.load().tutorialVersion, 1)
     settings.charge.limit = 19
     expectThrows(try store.save(settings))
     defaults.set(Data("broken".utf8), forKey: "settings.v1")

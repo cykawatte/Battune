@@ -82,7 +82,7 @@ import OSLog
     do {
       try await client.configureAdvanced(settings.advancedControl == true)
       let status = try await client.status()
-      guard status.version == "0.1.0-dev" else { throw BattuneError.protocolMismatch }
+      guard status.version == "0.1.0-beta.1" else { throw BattuneError.protocolMismatch }
       if status.controlGeneration != helper?.controlGeneration { executor.invalidate() }
       helper = status
       capabilities = status.capabilities

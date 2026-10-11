@@ -3,6 +3,7 @@ import BattuneShared
 import BattuneSystem
 import ServiceManagement
 import SwiftUI
+import UniformTypeIdentifiers
 import UserNotifications
 
 struct SetupView: View {
@@ -106,11 +107,19 @@ struct SetupView: View {
     } else {
       let package = Bundle.main.bundleURL.deletingLastPathComponent().appendingPathComponent(
         "BattuneHelper.pkg")
-      guard FileManager.default.fileExists(atPath: package.path) else {
-        statusMessage = localized("installer_missing")
-        return
+      if FileManager.default.fileExists(atPath: package.path) {
+        NSWorkspace.shared.open(package)
+      } else {
+        let panel = NSOpenPanel()
+        panel.title = localized("choose_installer")
+        panel.message = localized("choose_installer_detail")
+        panel.allowedContentTypes = [.init(filenameExtension: "pkg") ?? .data]
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.begin { response in
+          if response == .OK, let url = panel.url { NSWorkspace.shared.open(url) }
+        }
       }
-      NSWorkspace.shared.open(package)
     }
   }
 }

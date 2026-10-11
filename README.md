@@ -2,7 +2,7 @@
 
 **Lightweight native battery charge control for macOS.** Tune your battery.
 
-Version **0.1.0-dev** · MIT · macOS 13+ · no telemetry · no network services
+Version **0.1.0-beta.1** · MIT · macOS 13+ · no telemetry · no network services
 
 Battune is a native menu-bar application with a deterministic Rust control engine
 and a separate, narrowly scoped privileged helper. It is an independent implementation.
@@ -31,11 +31,27 @@ an explicit off/on/readback test. That off/on/readback test and local helper ins
 The native write/restore path has been tested on the local Mac. Advanced workflows and adapter failures have been exercised against a **test-only transport**; real privileged adapter off/on/readback and restoration are also verified locally.
 Unsupported real operations are displayed as unsupported, never reported as successful.
 
-## Screenshots
+## Beta installieren / Install beta
 
-Screenshot placeholder: capture menu-bar and settings views for the first public
-beta after hardware validation. Native German settings were visually inspected
-in local development; no user-specific screenshot is committed.
+<img src="assets/Battune.png" width="120" alt="Battune app icon">
+
+Download **Battune-0.1.0-beta.1.pkg** from the
+[GitHub beta release](https://github.com/cykawatte/Battune/releases/tag/v0.1.0-beta.1).
+Quit an existing Battune instance, open the installer, approve the administrator
+installation, then launch **Battune** from Applications. The package includes the
+app and matching privileged helper. The first-run tour explains core features
+and the explicit hardware-test/advanced-mode setup. Installing the helper does
+not automatically enable adapter control.
+
+**Deutsch:** Das vollständige Paket installiert App und Helper gemeinsam. Battune
+anschließend unter Programme starten und der kurzen Einführung folgen.
+[Installationsanleitung / installation and recovery](packaging/INSTALL.md).
+The ZIP also contains the instructions, helper-only repair package and uninstaller.
+Checksums are provided in `SHA256SUMS.txt`.
+
+This beta is **ad-hoc signed, not Developer ID signed or notarized**. macOS may
+require an explicit exception for this download; do not disable system-wide
+security protections. The repository remains private, so testers need GitHub access.
 
 ## Hardware support
 
@@ -109,8 +125,9 @@ hardware access cannot be repaired by a software promise.
 ./scripts/build-helper-installer.sh release
 ```
 
-Install the matching package through Setup only after approval. Keep it beside
-the app. After every rebuild, regenerate/reinstall it because signatures change.
+The complete beta installer includes the matching helper. Setup can also open a
+helper-only repair package. After every rebuild, regenerate/reinstall the package
+because exact code signatures change.
 [Permission, recovery and uninstall instructions](docs/FEATURE_PERMISSIONS.md).
 
 ## Privacy
@@ -139,11 +156,16 @@ network access. History and settings stay local. [Privacy policy](PRIVACY.md).
 
 ## Packaging and release
 
-`./scripts/package.sh` prepares a local ZIP from an existing Release build;
-`--dmg` additionally uses `hdiutil`. Set `BATTUNE_SIGNING_IDENTITY` only when you
-intend to use an available Keychain identity. No signing credentials belong in
-this repository. There is no automatic upload, publication or notarization.
-The Homebrew file is a non-publishable draft. See [release checklist](docs/RELEASING.md).
+```sh
+./scripts/build.sh release universal
+./scripts/package.sh
+./scripts/verify-package.sh
+```
+
+Produces a complete app/helper installer, helper-only repair installer, ZIP and
+SHA-256 checksums in `build/packages`. CI builds and validates these artifacts on
+pushes and pull requests. Packaging never installs or uploads automatically.
+See [release procedure and final-release gates](docs/RELEASING.md).
 
 ## Contributing and license
 

@@ -1,42 +1,57 @@
-# Local packaging and future release gates
+# Beta packaging and release
 
-This repository is not approved for a public release. Nothing has been pushed,
-published, notarized or submitted to an app store by this implementation task.
+The current milestone is **0.1.0-beta.1**, a GitHub prerelease. Repository visibility
+remains private; testers need access. It is not a final production release.
 
-`build.sh release [universal]` builds and ad-hoc signs a local bundle. `package.sh`
-is prepared for ZIP and optional DMG creation using ditto/hdiutil. Packaging is
-not automatically invoked by CI or by builds. Developer ID signing is opt-in via
-BATTUNE_SIGNING_IDENTITY referring to an existing Keychain identity. No secrets or
-certificate files are stored in the repository. The packaging script never
-notarizes or uploads; future notarization should use a Keychain profile.
+## Reproduce the download
 
-Before distributing:
+Install the toolchains described in README, then run from a clean checkout:
 
-1. Implement and physically validate real backends, including crash/reset behavior.
-2. Validate signed helper registration/authentication on all supported OS versions.
-3. Audit security and FFI. Verify no mock backend is linked into release artifacts.
-4. Measure long idle sessions, wakeups, RAM, cold startup, disk and network activity.
-5. Test Intel and Apple Silicon devices and Xcode workflow; complete accessibility/localization QA.
-6. Set a release version, complete changelog, capture sanitized screenshots.
-7. Sign nested helper then app, verify signatures and hardened runtime, notarize
-   only with explicit authorization, staple and verify on a clean Mac.
-8. Build ZIP/DMG, independently verify hash, then update the unpublished Homebrew
-   draft with a real URL/hash only after publication is separately authorized.
+```sh
+rustup target add aarch64-apple-darwin x86_64-apple-darwin
+./scripts/lint.sh
+./scripts/test.sh
+./scripts/build.sh release universal
+./scripts/package.sh
+./scripts/verify-package.sh
+```
 
-Uninstall: disable Battune control, obtain confirmed reset on a supported backend,
-then unregister helper from Diagnostics. Remove launch at login, quit, remove app.
-Disable native control and verify restoration before uninstalling. The ownership
-journal is at `~/Library/Application Support/Battune/native-charge-session.json`;
-do not delete it before restoring an active session. The legacy read-only backend
-has no custom hardware state to restore.
-Delete local settings/history separately if desired. Never copy the launchd plist
-manually into system directories; use ServiceManagement.
+Outputs in `build/packages`: complete installer, helper-only repair installer,
+ZIP (installers, instructions and uninstaller), SHA256SUMS.txt. Both executables
+contain arm64 and x86_64 slices. CI checks the package payload, code signatures,
+exact-hash identity pairing, icons, recovery scripts and fixed installation paths.
+Building or packaging never installs privileged software.
 
-## Advanced helper follow-up
+The full installer places the app in `/Applications/Battune.app`, the helper in
+`/Library/PrivilegedHelperTools/BattuneHelper.app`, its daemon in
+`/Library/LaunchDaemons/org.battune.helper.plist` and the root-owned identity
+manifest in `/Library/Application Support/BattuneHelper/identity.json`.
+The embedded helper and installed helper must match. Quit Battune normally before
+updating; the installer refuses to replace a running app, restores the previous
+helper's journaled state, then installs and starts the matching daemon.
 
-Local adapter mode has a separate `build-helper-installer.sh` preparation step.
-Generate the package after final app signing and keep it beside the app. Any
-signature change invalidates its exact-hash manifest and requires regeneration.
-`uninstall-local-helper.sh` restores journaled adapter state before removal.
-Do not publish or claim physical validation before the pending administrator,
-CHIE, sleep/crash recovery and full-cycle tests in FEATURE_PERMISSIONS.md.
+## Publish a beta
+
+1. Set VERSION, bundle build version, app/helper protocol version and Rust version.
+2. Update changelog, release notes and install instructions; run all checks above.
+3. Inspect the tutorial and installer; check helper authentication on a local Mac.
+4. Merge the reviewed branch to main only after GitHub CI succeeds.
+5. Create `v0.1.0-beta.1` from the merged commit as a **prerelease**, with the four
+   artifacts from `build/packages`. Verify uploaded checksums. Keep the repository
+   visibility unchanged. Packaging scripts do not publish on their own.
+
+The current download is ad-hoc signed and **not notarized**. Developer ID signing
+is optional through BATTUNE_SIGNING_IDENTITY using a local Keychain identity;
+no credentials belong in source control. Rebuild the exact-hash manifest after
+any signing change. The Homebrew cask remains an unpublished draft.
+
+## Final-release gates
+
+- Developer ID application/installer signing, notarization, stapling and clean-Mac install.
+- Intel and supported macOS runtime validation; signature-based ServiceManagement flow.
+- Complete physical charge/discharge/calibration cycles and sleep/crash recovery.
+- Long-running performance measurements and broader accessibility/localization QA.
+- Further review of private PowerUI/SMC compatibility and hardware fail-safe behavior.
+
+See [installation and uninstall](../packaging/INSTALL.md),
+[hardware support](HARDWARE_SUPPORT.md) and [permission evidence](FEATURE_PERMISSIONS.md).

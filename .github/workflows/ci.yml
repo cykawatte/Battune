@@ -20,5 +20,15 @@ jobs:
       - run: ./scripts/test.sh
       - run: ./scripts/build.sh
       - run: ./scripts/build.sh release universal
+      - run: ./scripts/package.sh
+      - run: ./scripts/verify-package.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: Battune-beta-${{ github.sha }}
+          path: |
+            build/packages/*.pkg
+            build/packages/*.zip
+            build/packages/SHA256SUMS.txt
+          if-no-files-found: error
       - name: Xcode wrapper
         run: xcodebuild -project Battune.xcodeproj -scheme Battune -configuration Debug -derivedDataPath build/Xcode CODE_SIGNING_ALLOWED=NO build

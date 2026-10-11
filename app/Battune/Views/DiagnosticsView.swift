@@ -116,7 +116,7 @@ struct DiagnosticsView: View {
     #endif
     let c = coordinator.capabilities
     return """
-      Battune 0.1.0-dev
+      Battune 0.1.0-beta.1
       macOS: \(ProcessInfo.processInfo.operatingSystemVersionString)
       Architecture: \(architecture)
       Controller: \(coordinator.helper?.version ?? "unavailable")
