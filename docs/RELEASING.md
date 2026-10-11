@@ -25,6 +25,9 @@ Before distributing:
 
 Uninstall: disable Battune control, obtain confirmed reset on a supported backend,
 then unregister helper from Diagnostics. Remove launch at login, quit, remove app.
-The read-only development backend has no custom hardware state to restore.
+Disable native control and verify restoration before uninstalling. The ownership
+journal is at `~/Library/Application Support/Battune/native-charge-session.json`;
+do not delete it before restoring an active session. The legacy read-only backend
+has no custom hardware state to restore.
 Delete local settings/history separately if desired. Never copy the launchd plist
 manually into system directories; use ServiceManagement.

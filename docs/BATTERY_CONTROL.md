@@ -1,7 +1,18 @@
 # Battery-control semantics
 
-All behavior below is implemented policy and mock-tested. **Real charging writes
-are unsupported in 0.1.0-dev.** Battery health features provided by macOS remain
+The native backend writes and verifies the macOS charge limit on supported Apple
+Silicon Macs. It uses only runtime-reported limits (80/85/90/95/100 on the tested
+host). Apple owns hysteresis, thermal protection and sleep enforcement; Battune
+does not send direct charging or discharge commands through this backend.
+
+Disabling control or quitting restores the prior macOS setting. After a crash,
+the OS retains the safe upper limit; the journal allows restoration on next
+launch. Native limits remain configured on battery power and during sleep.
+Schedules change the native upper limit while the app runs. Custom sailing,
+thermal thresholds and forced discharge are not applied in native mode.
+
+The legacy policy below is implemented and mock-tested only. Battery health
+features provided by macOS remain
 under the operating system's control.
 
 ## Priority

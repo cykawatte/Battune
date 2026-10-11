@@ -7,23 +7,27 @@ Version **0.1.0-dev** · MIT · macOS 13+ · no telemetry · no network services
 Battune is a native menu-bar application with a deterministic Rust control engine
 and a separate, narrowly scoped privileged helper. It is an independent implementation.
 
-**This development version monitors real battery information. Production charging
-writes are deliberately unsupported until the hardware backend is validated on
-physical devices. It does not currently limit your Mac's charging.** A signed
-helper alone does not enable unimplemented hardware operations.
+**Real native charge-limit control is implemented on supported Apple Silicon Macs.**
+Battune uses the same macOS charge service as System Settings, with a verified
+write/readback cycle and restoration of the previous limit. On the tested Mac16,12
+(macOS 27.0.1), the supported limits are **80, 85, 90, 95 and 100%**. No root helper
+or Apple developer identity is required for this native path. Direct SMC gates,
+forced discharge and calibration remain unavailable on this backend.
 
 ## Features
 
 - Native AppKit menu bar and SwiftUI settings in English and German.
 - Real IOKit battery readings, explicit unknown values, event-driven updates and sleep/wake handling.
-- Tested charge limits (20–100%), sailing hysteresis and thermal protection policy.
+- Real native charge limits with runtime detection of supported values.
+- Mock-tested 20–100% policy, sailing and custom thermal protection for future direct-control backends.
 - Explicit discharge and cancellable calibration workflows, gated by backend capabilities.
 - Weekly schedules with local timezone and daylight-saving handling.
 - Bounded local history, native chart, diagnostics and optional notifications.
 - Validated preferences, launch at login, onboarding and reset/recovery UI.
 - XPC authentication, argument validation, write deduplication, rate limits and expiring control leases.
 
-The controller and workflows are exercised against a **test-only mock backend**.
+The native write/restore path has been tested on the local Mac. Legacy controller
+workflows are exercised against a **test-only mock backend**.
 Unsupported real operations are displayed as unsupported, never reported as successful.
 
 ## Screenshots
@@ -93,8 +97,9 @@ An Apple-issued matching team signature is required for privileged XPC. Unsigned
 and ad-hoc clients are rejected. No shell, file-write or arbitrary SMC-key API
 exists. See [security model](docs/SECURITY_MODEL.md).
 
-Reset asks a supported backend to restore system charging; the development
-read-only backend returns `Unsupported`. Battune never promises to override
+Native reset restores the prior macOS limit only while Battune still owns the
+current setting. A durable journal recovers this state after app restart. The
+legacy read-only backend returns `Unsupported`. Battune never promises to override
 macOS battery-health management or restore unverified hardware state. Disable
 control and reset successfully before unregistering a validated helper or uninstalling.
 
@@ -105,7 +110,13 @@ network access. History and settings stay local. [Privacy policy](PRIVACY.md).
 
 ## Known limitations
 
-- No physical charge, discharge or SMC reset validation; real writes disabled.
+- Native setting writes/readbacks and restoration tested; a complete charge cycle
+  with AC attached has not been observed. macOS may occasionally charge to 100%
+  for calibration, as documented by Apple.
+- The native PowerUI interface is private: runtime ABI checks fail closed when it
+  changes. Only the values reported by macOS are accepted.
+- Direct SMC writes, forced discharge, custom thermal thresholds and sailing
+  remain unsupported by the native backend.
 - No developer identity available for privileged installation/end-to-end signed XPC testing.
 - macOS 13 and Intel runtime behavior require testing on those machines.
 - OS-provided battery fields vary. This host exposes percentage and cycles but

@@ -36,7 +36,24 @@ enum TestFailure: Error { case missingValue }
     let domain = DomainTests()
     let integration = IntegrationTests()
     let xpc = XPCTests()
+    let native = NativeChargeTests()
     let tests: [(String, () async throws -> Void)] = [
+      ("Native timeout and expired queued writes", { try await native.testNativeTimeout() }),
+      ("Native charge write, readback and restore", { try native.testWriteReadbackAndRestore() }),
+      (
+        "Native unsupported commands and readback failure",
+        { try native.testUnsupportedAndReadbackFailure() }
+      ),
+      (
+        "Native crash recovery and external settings",
+        { try native.testCrashRecoveryAndExternalChanges() }
+      ),
+      (
+        "Native failed recovery and corrupt journal",
+        { try native.testFailedRecoveryAndCorruption() }
+      ),
+      ("Native disabled baseline restoration", { try native.testDisabledBaseline() }),
+      ("Native coordinator and shutdown", { try await native.testNativeCoordinator() }),
       ("XPC wire roundtrip", { try await xpc.testProtocolRoundtrip() }),
       ("Expired control lease resets hardware", { try await xpc.testLeaseExpiration() }),
       ("Signing validation", { try xpc.testSigningRequirementSyntax() }),

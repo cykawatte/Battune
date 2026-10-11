@@ -25,6 +25,10 @@ helper, real charge writes, network connection or Apple development certificate.
 - XPC: actual anonymous unprivileged connection; status serialization and rejected
   charge-limit argument; code requirement parsing and unsigned client rejection;
   mock control-lease expiry requests reset exactly once.
+- Native charge control: supported values, write/readback, baseline restoration,
+  external changes, crash recovery, corrupt journal, failed recovery, timeout/expired queued requests and native
+  coordinator behavior on battery power without temperature data. These use a
+  fake OS transport and never write to the real charge service.
 - IOKit: a read-only smoke test accepts explicit unknowns on hosts without batteries.
 
 The Swift tests are a small standalone executable with throwing checks and a
@@ -100,3 +104,16 @@ Only after adding a reviewed real backend, on a designated test machine:
 Never run charge-control operations in CI. A successful mock test is not evidence
 that an SMC key is safe. Full Xcode, macOS 13 runtime, real Intel hardware, signed
 helper lifecycle and physical power events remain separately recorded manual gates.
+
+## Native hardware check (explicit, outside CI)
+
+On a supported Mac, record the existing system limit, then use Settings → Charging
+and save enabled control at 80%. Check the macOS limit in Diagnostics and in System
+Settings. Change to 85%; verify both again. Disable or quit Battune and check that
+the original limit returns. Reopen to confirm the saved enabled setting applies.
+A failed write must show an error and must never show an active limit.
+
+2026-10-11: 15 Rust tests and 28 Swift/integration test groups passed. On the local
+Mac16,12, UI writes at 80% and 85% were independently read back from the macOS
+service; quitting restored 100%. No administrator privileges were used. This
+validates real platform settings, not a complete physical AC charge cycle.

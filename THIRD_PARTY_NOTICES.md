@@ -15,6 +15,17 @@ SwiftPM/Cargo manifests and lockfile are authoritative. The compiler and system
 SDK determine exact platform runtime versions. No third-party source was copied
 into Battune. Review static compiler-support notices again before distribution.
 
+## Native charge-control research
+
+The optional PowerUI framework is supplied by macOS and is not redistributed.
+Native charge-interface selector names, ABI encodings and expected behavior were
+checked against the running system and the public
+[batt interface research](https://github.com/charlie0129/batt/tree/master/pkg/powerui)
+(GPL-2.0 project). Battune’s small runtime-checked Objective-C bridge and Swift
+transaction/journal implementation were independently written; no upstream source
+or binary is included. Apple documents the user-facing native limit behavior at
+[Apple Support](https://support.apple.com/en-au/102338).
+
 ## Rust standard library (MIT option)
 
 Copyright (c) The Rust Project Contributors

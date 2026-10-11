@@ -2,7 +2,13 @@
 
 ## Trust boundary
 
-The GUI runs as the logged-in user. Only the optional SMAppService LaunchDaemon
+The GUI runs as the logged-in user. Native charging uses Apple’s PowerUI service
+from that user session, without installing Battune code as root. The framework
+loads from a fixed system path; method selectors and argument types are fixed and
+validated at runtime. A serial queue, supported-value checks, readback and a local
+ownership journal bound this path. No shell or arbitrary selector is exposed.
+
+The optional legacy path is separate. Only the optional SMAppService LaunchDaemon
 has root privileges. It accepts fixed charge-limit, charging-gate, discharge-gate,
 reset, read/status and control-lease methods. No shell, command, path, file-write,
 or arbitrary SMC key/value argument is exposed. The app bundle contains the helper
@@ -21,7 +27,7 @@ There is no development bypass, private audit-token access or PID-only lookup ra
 |---|---|---|
 | Malicious local client | OS-enforced message signing requirement, exact identifiers and team | Compromised validly signed app can use allowed operations |
 | Malformed XPC | Typed scalar arguments; limits validated at the helper; fixed bounded data replies | Framework/compiler bugs remain possible |
-| Arbitrary SMC writes | No API for keys/bytes; production backends reject all mutations | A future backend needs independent audit |
+| Arbitrary SMC writes | No API for keys/bytes; legacy backends reject mutations; native backend exposes only OS-reported limits | A future backend needs independent audit |
 | Privilege escalation | No shell, caller paths, file writing or configurable helper code loading | Signing/distribution and launchd lifecycle require physical review |
 | Repeated commands | Serialized gate, confirmed-value deduplication, token bucket | Authenticated read traffic can still cause local load |
 | Compromised UI | Allowed operations limited to battery controls and reset | Can request supported controls repeatedly within rate limits |
@@ -31,14 +37,19 @@ There is no development bypass, private audit-token access or PID-only lookup ra
 
 ## Safety properties
 
-Capabilities originate from the backend, not the UI. No real write capability is
-advertised in this development version. Failed operations remain errors; reset
+Capabilities originate from the backend, not the UI. Native write capability is
+advertised only when the macOS service successfully reports supported limits. Failed operations remain errors; reset
 cannot return success for an unimplemented backend. Confirmations are cached only
 after success. The backend contract requires real readback before acknowledging a
-future mutation where technically possible. Unknown sensors do not become zero.
+mutation. Native writes and restoration require matching effective-limit readback. Unknown sensors do not become zero.
 Diagnostics exclude names, paths, serial numbers and UUIDs.
 
-The lease is a hardware safety mechanism, not charge policy. It is only armed
+The native backend does not need a lease: the firmware enforces a bounded limit
+even while Battune is stopped. On restart its journal allows restoration. A normal
+quit restores the previous limit; an external change is preserved. The journal
+is user-owned, contains no identity data, and is never consumed by a root helper.
+
+The legacy lease is a hardware safety mechanism, not charge policy. It is only armed
 following a successful mutation and renewed following a successful evaluation.
 No timer is active in the read-only helper. Expiry makes one reset attempt and
 logs failure without a write loop. An anonymous, unprivileged XPC test listener is

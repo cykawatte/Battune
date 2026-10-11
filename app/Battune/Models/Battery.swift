@@ -32,9 +32,12 @@ public struct Capabilities: Codable, Equatable, Sendable {
   public var toggleCharging: Bool
   public var forceDischarge: Bool
   public var reset: Bool
+  /// Present only when macOS itself enforces the charge limit.
+  public var nativeChargeLimits: [Int]?
   public init(
     readBattery: Bool = false, readTemperature: Bool = false, setLimit: Bool = false,
-    toggleCharging: Bool = false, forceDischarge: Bool = false, reset: Bool = false
+    toggleCharging: Bool = false, forceDischarge: Bool = false, reset: Bool = false,
+    nativeChargeLimits: [Int]? = nil
   ) {
     self.readBattery = readBattery
     self.readTemperature = readTemperature
@@ -42,6 +45,7 @@ public struct Capabilities: Codable, Equatable, Sendable {
     self.toggleCharging = toggleCharging
     self.forceDischarge = forceDischarge
     self.reset = reset
+    self.nativeChargeLimits = nativeChargeLimits
   }
   public var mask: Int32 {
     (setLimit ? 1 : 0) | (toggleCharging ? 2 : 0) | (forceDischarge ? 4 : 0) | (reset ? 8 : 0)
@@ -64,9 +68,14 @@ public struct HelperStatus: Codable, Sendable {
   public let version: String
   public let backend: String
   public let capabilities: Capabilities
-  public init(version: String = "0.1.0-dev", backend: String, capabilities: Capabilities) {
+  public let confirmedLimit: Int?
+  public init(
+    version: String = "0.1.0-dev", backend: String, capabilities: Capabilities,
+    confirmedLimit: Int? = nil
+  ) {
     self.version = version
     self.backend = backend
     self.capabilities = capabilities
+    self.confirmedLimit = confirmedLimit
   }
 }

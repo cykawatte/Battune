@@ -28,7 +28,7 @@ struct SettingsView: View {
       TabView(selection: $selected) {
         general.tabItem { Label(localized("general"), systemImage: "gearshape") }.tag(0)
         charging.tabItem { Label(localized("charging"), systemImage: "battery.75percent") }.tag(1)
-        ScheduleView(settings: settings).tabItem {
+        ScheduleView(settings: settings, coordinator: coordinator).tabItem {
           Label(localized("schedules"), systemImage: "calendar")
         }
         .tag(2)
@@ -94,34 +94,45 @@ struct SettingsView: View {
         }
         SettingsSlider(
           "charge_limit", value: $settings.value.charge.limit,
-          in: (settings.value.charge.sailing ? 21 : 20)...100
+          in: (coordinator.capabilities.nativeChargeLimits?.min()
+            ?? (settings.value.charge.sailing ? 21 : 20))...100,
+          supportedValues: coordinator.capabilities.nativeChargeLimits
         )
         .onChange(of: settings.value.charge.limit) { limit in
           settings.value.charge.lower = min(settings.value.charge.lower, max(20, limit - 1))
         }
-        Toggle(localized("sailing"), isOn: $settings.value.charge.sailing)
-          .disabled(settings.value.charge.limit <= 20)
-        SettingsSlider(
-          "lower_limit", value: $settings.value.charge.lower,
-          in: 20...max(21, settings.value.charge.limit - 1)
-        )
-        .disabled(!settings.value.charge.sailing || settings.value.charge.limit <= 21)
-      }
-      Section(localized("thermal")) {
-        Toggle(localized("enable_thermal"), isOn: $settings.value.charge.thermal)
-        SettingsSlider(
-          "stop_temperature", value: $settings.value.charge.stopTemperature, in: 21...50
-        )
-        .onChange(of: settings.value.charge.stopTemperature) { stop in
-          settings.value.charge.resumeTemperature = min(
-            settings.value.charge.resumeTemperature, stop - 1)
+        if coordinator.capabilities.nativeChargeLimits == nil {
+          Toggle(localized("sailing"), isOn: $settings.value.charge.sailing)
+            .disabled(settings.value.charge.limit <= 20)
+          SettingsSlider(
+            "lower_limit", value: $settings.value.charge.lower,
+            in: 20...max(21, settings.value.charge.limit - 1)
+          )
+          .disabled(!settings.value.charge.sailing || settings.value.charge.limit <= 21)
+        } else {
+          Text(localized("native_control_detail")).font(.callout).foregroundStyle(.secondary)
+          if let limit = coordinator.helper?.confirmedLimit {
+            LabeledContent(localized("confirmed_limit"), value: "\(limit)%")
+          }
         }
-        SettingsSlider(
-          "resume_temperature", value: $settings.value.charge.resumeTemperature,
-          in: 20...max(21, settings.value.charge.stopTemperature - 1)
-        )
-        .disabled(settings.value.charge.stopTemperature <= 21)
-        Text(localized("thermal_note")).font(.caption).foregroundStyle(.secondary)
+      }
+      if coordinator.capabilities.nativeChargeLimits == nil {
+        Section(localized("thermal")) {
+          Toggle(localized("enable_thermal"), isOn: $settings.value.charge.thermal)
+          SettingsSlider(
+            "stop_temperature", value: $settings.value.charge.stopTemperature, in: 21...50
+          )
+          .onChange(of: settings.value.charge.stopTemperature) { stop in
+            settings.value.charge.resumeTemperature = min(
+              settings.value.charge.resumeTemperature, stop - 1)
+          }
+          SettingsSlider(
+            "resume_temperature", value: $settings.value.charge.resumeTemperature,
+            in: 20...max(21, settings.value.charge.stopTemperature - 1)
+          )
+          .disabled(settings.value.charge.stopTemperature <= 21)
+          Text(localized("thermal_note")).font(.caption).foregroundStyle(.secondary)
+        }
       }
     }.formStyle(.grouped)
   }

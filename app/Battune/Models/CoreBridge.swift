@@ -8,7 +8,7 @@ public struct ControlState: Equatable, Sendable {
 }
 public enum ControlMode: Int32, Sendable {
   case system = 0
-  case charging, holding, thermalHold, discharging, calibration, unavailable
+  case charging, holding, thermalHold, discharging, calibration, unavailable, nativeLimit
   public var localizationKey: String { "mode.\(rawValue)" }
 }
 public struct ControlPlan: Sendable {

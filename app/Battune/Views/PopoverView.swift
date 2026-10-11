@@ -36,22 +36,33 @@ struct PopoverView: View {
       Divider()
       SettingsSlider(
         "charge_limit", value: $settings.value.charge.limit,
-        in: (settings.value.charge.sailing ? 21 : 20)...100
+        in: (coordinator.capabilities.nativeChargeLimits?.min()
+          ?? (settings.value.charge.sailing ? 21 : 20))...100,
+        supportedValues: coordinator.capabilities.nativeChargeLimits
       ) { editing in
         if !editing, settings.save() { coordinator.updateSettings(settings.value) }
       }
       .onChange(of: settings.value.charge.limit) { limit in
         settings.value.charge.lower = min(settings.value.charge.lower, max(20, limit - 1))
       }
-      HStack {
-        Text(localized("sailing"))
-        Spacer()
-        Text(localized(settings.value.charge.sailing ? "on" : "off"))
-      }
-      HStack {
-        Text(localized("thermal"))
-        Spacer()
-        Text(localized(settings.value.charge.thermal ? "on" : "off"))
+      if coordinator.capabilities.nativeChargeLimits == nil {
+        HStack {
+          Text(localized("sailing"))
+          Spacer()
+          Text(localized(settings.value.charge.sailing ? "on" : "off"))
+        }
+        HStack {
+          Text(localized("thermal"))
+          Spacer()
+          Text(localized(settings.value.charge.thermal ? "on" : "off"))
+        }
+      } else {
+        HStack {
+          Text(localized("confirmed_limit"))
+          Spacer()
+          Text(coordinator.helper?.confirmedLimit.map { "\($0)%" } ?? "—")
+        }
+        Text(localized("native_short_detail")).font(.caption).foregroundStyle(.secondary)
       }
       if let error = coordinator.lastError ?? settings.error {
         Text(localized("error.\(error.rawValue)")).font(.caption).foregroundStyle(.red)

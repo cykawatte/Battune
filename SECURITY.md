@@ -1,7 +1,9 @@
 # Security policy
 
 Battune 0.1.0-dev is development software, not a validated public release.
-All real hardware mutations are currently unsupported.
+Native macOS charge-limit writes and restoration are implemented with readback
+verification. Direct SMC, forced-discharge and charging-gate mutations remain
+unsupported. The private OS interface is checked at runtime and may change.
 
 Do not post signing material, exploit credentials, serial numbers or private logs
 in public issues. Once a public repository enables GitHub private vulnerability

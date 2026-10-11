@@ -11,7 +11,7 @@
 "charge_limit" = "Charge limit";
 "charging" = "Charging";
 "clear_history" = "Delete history";
-"control_unavailable" = "Charging control is not available in this version.";
+"control_unavailable" = "Charging control unavailable — see Diagnostics.";
 "copy_diagnostics" = "Copy diagnostics";
 "cycles" = "Cycle count";
 "day.0" = "Mon";
@@ -64,7 +64,7 @@
 "notifications" = "Notify on thermal hold and control failure";
 "off" = "Off";
 "on" = "On";
-"onboarding_body" = "Battune monitors your battery and can manage charging on validated hardware. Control may require an administrator-approved helper. Features depend on your Mac. Reset Charging Control requests normal system charging. No telemetry or network access. Monitoring starts with hardware control disabled.";
+"onboarding_body" = "Battune can set the native macOS charge limit on supported Apple Silicon Macs. Available limits are detected on the device. macOS manages charging and thermal protection. No root helper is needed. No telemetry or network access. Control starts disabled.";
 "phase.0" = "Inactive";
 "phase.1" = "Charging to 100%";
 "phase.2" = "Stabilizing";
@@ -81,7 +81,7 @@
 "register_helper" = "Register helper";
 "remove_helper" = "Remove helper";
 "reset_control" = "Reset Charging Control";
-"reset_explanation" = "Disable Battune control and request system defaults from the backend. Success is reported only after the helper confirms the operation.";
+"reset_explanation" = "Disable Battune control and restore the previous macOS charge limit. A limit changed outside Battune in the meantime is preserved. Success requires readback verification.";
 "resume_temperature" = "Resume below";
 "sailing" = "Sailing";
 "save" = "Save settings";
@@ -106,5 +106,11 @@
 "time" = "Time";
 "unknown" = "Unknown";
 "unsupported" = "Not supported on this Mac";
-"unsupported_detail" = "This version only reads battery data. macOS continues to manage charging. The switch cannot be enabled yet because hardware charging control is not implemented. Installing the helper alone does not enable it. You can save preferences, but they do not affect charging yet.";
+"unsupported_detail" = "The native macOS charge service could not be reached or does not support this Mac. See Diagnostics for the error. Legacy helper control is not yet enabled for this device.";
 "welcome" = "Welcome to Battune";
+
+"mode.7" = "Native charge limit active";
+"confirmed_limit" = "macOS charge limit";
+"native_control_detail" = "Battune sets the native macOS charge limit. macOS decides when to pause or resume charging and provides thermal protection. Custom sailing and temperature rules and forced discharge are unavailable with this controller. macOS may occasionally charge to 100% for calibration. Disabling or quitting Battune restores the previous limit.";
+"native_short_detail" = "Charging and thermal protection managed by macOS.";
+"native_no_helper" = "The native limit is set through the macOS charge service. No separate privileged helper or administrator approval is required.";

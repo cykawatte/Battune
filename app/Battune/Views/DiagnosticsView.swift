@@ -17,7 +17,11 @@ struct DiagnosticsView: View {
         Text(report).font(.system(.caption, design: .monospaced)).textSelection(.enabled).frame(
           maxWidth: .infinity, alignment: .leading)
       }
-      Text(localized("helper_signing_note")).font(.caption).foregroundStyle(.secondary)
+      Text(
+        localized(
+          coordinator.capabilities.nativeChargeLimits == nil
+            ? "helper_signing_note" : "native_no_helper")
+      ).font(.caption).foregroundStyle(.secondary)
       if helperOperationError { Text(localized("helper_registration_error")).foregroundStyle(.red) }
       HStack {
         Button(localized("copy_diagnostics")) {
@@ -26,26 +30,28 @@ struct DiagnosticsView: View {
         }
         Button(localized("refresh")) { coordinator.retry() }
       }
-      HStack {
-        Button(localized("register_helper")) {
-          do {
-            try HelperClient.register()
-            helperOperationError = false
-            coordinator.retry()
-          } catch { helperOperationError = true }
-        }.disabled(SigningIdentity.teamIdentifier() == nil || helperOperationBusy)
-        Button(localized("remove_helper")) {
-          helperOperationBusy = true
-          Task {
+      if coordinator.capabilities.nativeChargeLimits == nil {
+        HStack {
+          Button(localized("register_helper")) {
             do {
-              try await HelperClient.unregister()
+              try HelperClient.register()
               helperOperationError = false
+              coordinator.retry()
             } catch { helperOperationError = true }
-            helperOperationBusy = false
-            coordinator.retry()
-          }
-        }.disabled(settings.value.controlEnabled || helperOperationBusy)
-        Button(localized("login_settings")) { SMAppService.openSystemSettingsLoginItems() }
+          }.disabled(SigningIdentity.teamIdentifier() == nil || helperOperationBusy)
+          Button(localized("remove_helper")) {
+            helperOperationBusy = true
+            Task {
+              do {
+                try await HelperClient.unregister()
+                helperOperationError = false
+              } catch { helperOperationError = true }
+              helperOperationBusy = false
+              coordinator.retry()
+            }
+          }.disabled(settings.value.controlEnabled || helperOperationBusy)
+          Button(localized("login_settings")) { SMAppService.openSystemSettingsLoginItems() }
+        }
       }
       Button(localized("reset_control")) { confirmReset = true }.disabled(
         !coordinator.capabilities.reset || coordinator.busy)
@@ -77,13 +83,15 @@ struct DiagnosticsView: View {
       Battune 0.1.0-dev
       macOS: \(ProcessInfo.processInfo.operatingSystemVersionString)
       Architecture: \(architecture)
-      Helper: \(coordinator.helper?.version ?? "unavailable")
+      Controller: \(coordinator.helper?.version ?? "unavailable")
       Helper registration: \(HelperClient.registrationStatus.rawValue)
       Helper error: \(coordinator.helperError.map { String(describing: $0) } ?? "none")
       Backend: \(coordinator.helper?.backend ?? "local IOKit read-only")
       Read battery: \(c.readBattery)
       Read temperature: \(c.readTemperature)
       Set limit: \(c.setLimit)
+      Native supported limits: \(c.nativeChargeLimits?.map(String.init).joined(separator: ", ") ?? "none")
+      Confirmed native limit: \(coordinator.helper?.confirmedLimit.map(String.init) ?? "unknown")
       Toggle charging: \(c.toggleCharging)
       Force discharge: \(c.forceDischarge)
       Reset: \(c.reset)

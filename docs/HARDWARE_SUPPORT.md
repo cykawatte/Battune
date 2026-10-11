@@ -4,12 +4,17 @@ Do not equate compilation, simulation and physical charging validation.
 
 | Architecture | Device | macOS | Battery read | Charge limit | Forced discharge | Temperature | Test status |
 |---|---|---|---|---|---|---|---|
-| arm64 | Mac16,12 | 27.0.1 (26A434) | Percentage, AC/charging state and cycle count observed | Unsupported | Unsupported | Unknown from selected properties | Local read-only IOKit and UI tested; no charging writes |
-| arm64 | Other models | 13+ | Capability detection implemented | Unsupported | Unsupported | Detected when available | Untested physical hardware |
-| x86_64 | Intel Macs | 13+ | Capability detection implemented | Unsupported | Unsupported | Detected when available | Cross-build only; physical hardware untested |
+| arm64 | Mac16,12 | 27.0.1 (26A434) | Percentage, AC/charging state and cycle count observed | Native 80/85/90/95/100% | Unsupported | macOS-managed | Real native writes, readback and restoration tested; full AC charge cycle pending |
+| arm64 | Other models | 13+ | Capability detection implemented | Native runtime probe; untested | Unsupported | Detected when available | Untested physical hardware |
+| x86_64 | Intel Macs | 13+ | Capability detection implemented | Native runtime probe; untested | Unsupported | Detected when available | Cross-build only; physical hardware untested |
 | Host | Test-only MockBackend | N/A | Simulated | Simulated | Simulated | Simulated | Automated controller, helper gate and integration tests |
 
-AppleSiliconBackend and IntelBackend intentionally expose no write/reset
+The native `NativeChargeClient` runs before the legacy helper backend. Its actual
+limits are discovered through the macOS charge service. No root helper is needed.
+Other Apple Silicon devices use the same capability probe, but have not been
+physically tested. Intel support is not claimed.
+
+The legacy AppleSiliconBackend and IntelBackend intentionally expose no write/reset
 capabilities. A historical SMC key or the existence of an AppleSMC service is not
 proof that writing it is safe or that reset is understood. There is no arbitrary
 key reader/writer in this version. Existing proprietary code was not used.
@@ -35,3 +40,27 @@ No physical write testing is performed by CI or automatically by diagnostics.
 The installed CLT SDK emits an x86_64 linker warning: its Swift compatibility-packs
 archive has only ARM slices. The executables link and contain x86_64 slices, but
 Intel runtime compatibility must be checked with full Xcode and real Intel hardware.
+
+## Native control validation — 2026-10-11
+
+On Mac16,12 / arm64 / macOS 27.0.1 (26A434), as the logged-in user without root:
+
+- Read supported limits: 80, 85, 90, 95, 100.
+- Changed the actual macOS setting from 100% to 80%, verified readback, restored
+  the effective original 100%. macOS normalizes 100% to a disabled native limit.
+- Through the Battune UI: enabled 80%, changed to 85%, independently read the
+  same values from the OS service. Quitting restored the original effective 100%.
+- Simulated tests cover readback failure, unsupported values, corrupted journals,
+  failed recovery, relaunch restoration, external settings, and coordinator shutdown.
+- Setting acceptance/readback does not prove a full battery charge cycle. AC
+  enforcement and sleep/wake charging still require a longer physical run.
+
+API research references (protocol facts only; no upstream implementation copied):
+
+- [Apple native charge-limit behavior](https://support.apple.com/en-au/102338).
+- [batt PowerUI interface research](https://github.com/charlie0129/batt/tree/master/pkg/powerui).
+
+The optional private PowerUI API is not a public Apple SDK contract. Battune
+validates method return/argument types before use and disables the path on an ABI
+mismatch. System thermal protection remains active. macOS may occasionally charge
+to 100% for battery calibration; Battune does not claim to override that behavior.

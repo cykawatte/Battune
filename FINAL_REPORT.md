@@ -1,3 +1,8 @@
+> Historical initial implementation report. The native hardware-control follow-up
+> of 2026-10-11 supersedes the statements below about all writes being unsupported.
+> See [current hardware support](docs/HARDWARE_SUPPORT.md) and README for the
+> implemented native charge-limit path, physical write/readback evidence and limits.
+
 # Battune 0.1.0-dev — final engineering report
 
 Completed locally: 2026-10-10, Europe/Berlin.

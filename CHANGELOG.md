@@ -1,5 +1,16 @@
 # Changelog
 
+## Native hardware control — 2026-10-11
+
+- Real macOS charge-limit writes through the OS PowerUI service, without a root
+  helper. Detect supported limits and verify every write by reading it back.
+- Durable recovery journal restores the previous native limit on disable/quit;
+  handles restarts, failures and external changes.
+- Native mode for settings, popover and schedules; sliders snap to actual supported
+  limits. Clearly distinguish native protection from unsupported direct controls.
+- Seven additional test groups cover write/readback/restore and error recovery.
+- Physical setting writes/readback verified on Mac16,12 / macOS 27.0.1.
+
 ## UI follow-up — 2026-10-10
 
 - Measure the menu-bar popover before presentation so its header stays visible.

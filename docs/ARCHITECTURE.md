@@ -16,13 +16,38 @@ no platform calls, I/O or mutable globals. Evaluation returns desired values; it
 never performs hardware operations. Swift owns confirmed operation state. Failed
 commands invalidate that state and trigger one bounded reset attempt.
 
+## Native charge-limit path
+
+`CNativeCharge` dynamically loads the OS-owned PowerUI framework and verifies the
+Objective-C signatures of a fixed set of charge-limit methods. It exports only
+read, set-limit and disable operations. `NativeChargeClient` serializes these
+calls off the main thread with a five-second response deadline. Queued requests
+that expire are not executed. An OS call already in progress cannot be cancelled;
+its durable journal remains available for recovery if the service stalls. It requires no Battune LaunchDaemon: Apple's service
+performs the actual privileged hardware operation.
+
+`PlatformHardwareClient` selects native control when available and only probes the
+legacy helper when native control reports unsupported. It never silently changes
+controllers after selecting one. Native mode bypasses the direct-gate Rust policy
+because macOS itself owns hysteresis, thermal protection and sleeping behavior.
+The coordinator applies the scheduled upper limit and publishes success only
+after a matching readback. Unknown/unaccepted values are errors, never rounded in
+hardware commands. Sliders snap to supported values visibly before saving.
+
+`NativeChargeSession` writes an atomic ownership journal before mutation, retains
+the original effective macOS setting across successive changes, and verifies
+restoration. A process lock serializes journal transactions. Failed restoration
+keeps recovery data. Reset preserves a different setting changed outside Battune.
+A crash leaves a bounded native charge limit, not disabled charging or forced
+discharge. The next launch can restore the journal, or resume the saved limit.
+
 ## ABI and ownership
 
 ABI v1 uses explicit Int32/UInt32/Int64 fields and a maintained C header. SOC and
 optional target/lower flags use -1 for unknown; temperature uses INT32_MIN. No Rust
 heap object crosses the boundary. Schedule input is borrowed for the call, limited
-to 32 entries. One documented unsafe slice creation is the only unsafe production
-operation. Layout assertions and Swift-to-Rust tests check sizes and behavior.
+to 32 entries. The Rust slice conversion is documented; the native Objective-C bridge separately
+checks runtime method ABIs before calling the private platform interface. Layout assertions and Swift-to-Rust tests check sizes and behavior.
 Inputs are validated before narrowing integer conversions.
 
 ## Events and scheduling

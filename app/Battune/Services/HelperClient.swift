@@ -9,10 +9,15 @@ public protocol HardwareClient: AnyObject {
   func perform(_ command: HardwareCommand) async throws
 }
 /// One-shot completion gate protects against timeout/error/reply races.
-private final class ReplyGate<T>: @unchecked Sendable {
+final class ReplyGate<T>: @unchecked Sendable {
   private let lock = NSLock()
   private var continuation: CheckedContinuation<T, Error>?
   private var timeout: DispatchWorkItem?
+  var isPending: Bool {
+    lock.lock()
+    defer { lock.unlock() }
+    return continuation != nil
+  }
   func arm(_ item: DispatchWorkItem) {
     lock.lock()
     defer { lock.unlock() }

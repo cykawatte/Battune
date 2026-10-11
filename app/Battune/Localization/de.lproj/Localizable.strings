@@ -11,7 +11,7 @@
 "charge_limit" = "Ladegrenze";
 "charging" = "Laden";
 "clear_history" = "Verlauf löschen";
-"control_unavailable" = "Ladesteuerung in dieser Version noch nicht verfügbar.";
+"control_unavailable" = "Ladesteuerung nicht verfügbar – siehe Diagnose.";
 "copy_diagnostics" = "Diagnose kopieren";
 "cycles" = "Ladezyklen";
 "day.0" = "Mo";
@@ -64,7 +64,7 @@
 "notifications" = "Bei Temperaturpause und Steuerungsfehler benachrichtigen";
 "off" = "Aus";
 "on" = "Ein";
-"onboarding_body" = "Battune überwacht die Batterie und kann auf geprüfter Hardware das Laden steuern. Dafür kann ein vom Administrator genehmigter Helper erforderlich sein. Funktionen hängen vom Mac ab. Ladesteuerung zurücksetzen fordert normales Systemladen an. Keine Telemetrie, kein Netzwerkzugriff. Die Überwachung startet ohne Hardwaresteuerung.";
+"onboarding_body" = "Battune kann auf unterstützten Apple-Silicon-Macs die native macOS-Ladegrenze setzen. Die verfügbaren Werte werden am Gerät ermittelt. macOS übernimmt Ladeablauf und Temperaturschutz. Kein Root-Helper nötig. Ohne Telemetrie oder Netzwerkzugriff. Die Steuerung startet ausgeschaltet.";
 "phase.0" = "Inaktiv";
 "phase.1" = "Auf 100 % laden";
 "phase.2" = "Stabilisierung";
@@ -81,7 +81,7 @@
 "register_helper" = "Helper registrieren";
 "remove_helper" = "Helper entfernen";
 "reset_control" = "Ladesteuerung zurücksetzen";
-"reset_explanation" = "Battune-Steuerung deaktivieren und Systemstandard beim Backend anfordern. Erfolg wird erst nach Bestätigung durch den Helper angezeigt.";
+"reset_explanation" = "Battune-Steuerung deaktivieren und die vorherige macOS-Ladegrenze wiederherstellen. Eine zwischenzeitlich außerhalb von Battune geänderte Grenze bleibt erhalten. Erfolg wird erst nach dem Zurücklesen gemeldet.";
 "resume_temperature" = "Fortsetzen unter";
 "sailing" = "Sailing";
 "save" = "Einstellungen speichern";
@@ -106,5 +106,11 @@
 "time" = "Zeit";
 "unknown" = "Unbekannt";
 "unsupported" = "Auf diesem Mac nicht unterstützt";
-"unsupported_detail" = "Diese Version liest nur Batteriedaten. macOS steuert das Laden weiterhin selbst. Der Schalter lässt sich noch nicht aktivieren, weil die Hardware-Ladesteuerung noch nicht implementiert ist. Eine Helper-Installation allein schaltet sie nicht frei. Du kannst Werte speichern; sie beeinflussen das Laden noch nicht.";
+"unsupported_detail" = "Der native macOS-Ladedienst konnte nicht erreicht werden oder unterstützt diesen Mac nicht. Unter Diagnose findest du den Fehler. Die klassische Helper-Steuerung ist für dieses Gerät noch nicht freigegeben.";
 "welcome" = "Willkommen bei Battune";
+
+"mode.7" = "Native Ladegrenze aktiv";
+"confirmed_limit" = "macOS-Ladegrenze";
+"native_control_detail" = "Battune setzt die native macOS-Ladegrenze. macOS bestimmt, wann das Laden pausiert oder fortgesetzt wird, und übernimmt den Temperaturschutz. Eigene Sailing- und Temperaturregeln sowie erzwungenes Entladen sind mit diesem Steuerungsweg nicht verfügbar. macOS kann zur Kalibrierung gelegentlich bis 100 % laden. Beim Deaktivieren oder Beenden stellt Battune die vorherige Grenze wieder her.";
+"native_short_detail" = "Ladeablauf und Temperaturschutz durch macOS.";
+"native_no_helper" = "Die native Ladegrenze wird über den macOS-Ladedienst gesetzt. Kein eigener privilegierter Helper und keine Administratorfreigabe erforderlich.";

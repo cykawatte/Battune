@@ -8,7 +8,10 @@ Preferences and a calibration recovery journal are stored in the app's UserDefau
 domain (`org.battune.app`). Optional battery history is stored under the user's
 Application Support/Battune directory, with approximately 30 days / 8,640 samples
 maximum. Readings contain timestamps and battery metrics, not account or hardware
-identifiers. Disable recording in General and delete existing history in Statistics.
+identifiers. A native charge-session recovery file in the same directory stores
+only the previous limit, enabled state, supported values and last requested limit.
+It is removed after restoration; retain it until an active session is reset.
+Disable recording in General and delete existing history in Statistics.
 
 Diagnostics contain app/OS version, architecture, capabilities, charge state and
 errors. They omit user names, home paths, serial numbers and UUIDs. Copying a report

@@ -30,7 +30,8 @@ import OSLog
   private let logger = Logger(subsystem: "org.battune.app", category: "Control")
   public init(
     settings: AppSettings, store: SettingsStore, history: HistoryStore,
-    provider: BatteryProviding = SystemBatteryProvider(), client: HardwareClient = HelperClient()
+    provider: BatteryProviding = SystemBatteryProvider(),
+    client: HardwareClient = PlatformHardwareClient()
   ) {
     self.settings = settings
     self.store = store
@@ -50,6 +51,7 @@ import OSLog
     do {
       try value.validate()
       settings = value
+      suspended = false
       revision += 1
       executor.invalidate()
       if !settings.controlEnabled {
@@ -138,6 +140,28 @@ import OSLog
             dischargeTarget = schedule.dischargeTarget
           }
         }
+      }
+      if let limits = capabilities.nativeChargeLimits {
+        // Native firmware owns charging hysteresis, thermal protection and sleep.
+        // Keep the limit configured on battery power as well as on AC.
+        if settings.controlEnabled {
+          guard limits.contains(charge.limit), dischargeTarget == nil, !calibration.active else {
+            throw BattuneError.unsupported
+          }
+          if helper?.confirmedLimit != charge.limit { executor.invalidate() }
+          try await executor.apply([.limit(charge.limit)])
+          let verified = try await client.status()
+          guard verified.confirmedLimit == charge.limit else { throw BattuneError.hardwareError }
+          helper = verified
+          mode = .nativeLimit
+        } else {
+          try await executor.apply([.reset])
+          helper = try await client.status()
+          mode = .system
+        }
+        sensorMissing = false
+        lastError = nil
+        return
       }
       if calibration.active {
         let safety = try CoreBridge.evaluate(
