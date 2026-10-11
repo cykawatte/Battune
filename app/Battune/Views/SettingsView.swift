@@ -95,6 +95,12 @@ struct SettingsView: View {
   private var charging: some View {
     Form {
       Section {
+        if settings.value.advancedControl == true {
+          Text(localized("automatic_limit_routing")).font(.callout).foregroundStyle(.secondary)
+        }
+        if coordinator.capabilities.adapterControl == true {
+          Text(localized("adapter_limit_warning")).font(.callout).foregroundStyle(.orange)
+        }
         Toggle(localized("enable_control"), isOn: $settings.value.controlEnabled)
           .disabled(!settings.value.onboardingComplete || !coordinator.capabilities.canControl)
         if !coordinator.capabilities.canControl {
@@ -102,9 +108,11 @@ struct SettingsView: View {
         }
         SettingsSlider(
           "charge_limit", value: $settings.value.charge.limit,
-          in: (coordinator.capabilities.nativeChargeLimits?.min()
+          in: ((settings.value.advancedControl == true
+            ? nil : coordinator.capabilities.nativeChargeLimits)?.min()
             ?? (settings.value.charge.sailing ? 21 : 20))...100,
-          supportedValues: coordinator.capabilities.nativeChargeLimits
+          supportedValues: settings.value.advancedControl == true
+            ? nil : coordinator.capabilities.nativeChargeLimits
         )
         .onChange(of: settings.value.charge.limit) { limit in
           settings.value.charge.lower = min(settings.value.charge.lower, max(20, limit - 1))

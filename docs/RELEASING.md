@@ -34,7 +34,7 @@ helper's journaled state, then installs and starts the matching daemon.
 
 1. Set VERSION, bundle build version, app/helper protocol version and Rust version.
 2. Update changelog, release notes and install instructions; run all checks above.
-3. Inspect the tutorial and installer; check helper authentication on a local Mac.
+3. Check native-limit preference with advanced mode enabled, sleep preservation and workflow restoration. Inspect the tutorial and installer; check helper authentication on a local Mac.
 4. Merge the reviewed branch to main only after GitHub CI succeeds.
 5. Create `v0.1.0-beta.1` from the merged commit as a **prerelease**, with the four
    artifacts from `build/packages`. Verify uploaded checksums. Keep the repository

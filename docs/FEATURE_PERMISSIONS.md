@@ -96,3 +96,13 @@ Erfolgreich ausgeführt: privilegierte Installation, authentifizierte XPC-Verbin
 und realer CHIE-Aus-/Ein-Test mit Rücklesen und Wiederherstellung. Noch offen sind
 physische Entlade-/Kalibrierungszyklen, Schlaf-/Crash-Wiederherstellung und Langzeittests.
 Der erweiterte Modus bleibt nach diesem begrenzten Test ausgeschaltet.
+
+## Beta routing correction
+
+Enabling advanced workflows no longer replaces a supported native limit with
+adapter cycling. Native limits keep adapter input enabled, survive Battune's sleep
+handler and do not require helper revalidation after wake. Discharge/calibration
+switch explicitly to the helper and return to native control on completion or
+cancellation. Non-native limits retain the awake-only adapter tradeoff. The UI
+shows this distinction; no arbitrary standby limit or physical battery isolation
+is claimed. macOS may exceed its native limit for battery-gauge calibration.

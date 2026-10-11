@@ -171,59 +171,82 @@ public final class NativeChargeClient: HardwareClient {
     try await request { [self] in try session.perform(command) }
   }
   public func renewLease() async throws {
-    // The firmware enforces the upper limit, including during sleep. It needs no
-    // process heartbeat and never forces discharge or disables thermal protection.
+    // macOS owns this setting across sleep; Battune does not reset it or need
+    // a heartbeat. Apple may still override it for battery-gauge calibration.
   }
 }
 
-/// Controller transitions are explicit and restore the previous controller first.
+/// Native limits take precedence for normal charging, even when workflows are unlocked.
+/// Only explicitly requested workflows or non-native limits select the adapter gate.
 public actor PlatformHardwareClient: HardwareClient {
   private let native: HardwareClient
   private let helper: HardwareClient
   private var selected: HardwareClient?
+  private var usingHelper = false
   private var advanced = false
+  private var routingGeneration: UInt64 = 0
   public init(
     native: HardwareClient = NativeChargeClient(), helper: HardwareClient = HelperClient()
   ) {
     self.native = native
     self.helper = helper
   }
+  public func configureControl(advanced: Bool, limit: Int, workflow: Bool) async throws {
+    self.advanced = advanced
+    var nativeSupportsLimit = false
+    do {
+      nativeSupportsLimit =
+        try await native.status().capabilities.nativeChargeLimits?.contains(limit) == true
+    } catch BattuneError.unsupported {
+      // A missing native API is different from a failed/corrupt native session.
+    }
+    try await selectHelper(advanced && (workflow || !nativeSupportsLimit))
+  }
   public func configureAdvanced(_ enabled: Bool) async throws {
-    guard enabled != advanced else { return }
-    if let selected { try await selected.perform(.reset) }
-    if advanced { try await native.perform(.reset) }
     advanced = enabled
+    try await selectHelper(enabled)
+  }
+  private func selectHelper(_ enabled: Bool) async throws {
+    guard selected == nil || enabled != usingHelper else { return }
+    if let selected { try await selected.perform(.reset) }
+    // Restore any native limit temporarily lifted for an adapter workflow.
+    if usingHelper { try await native.perform(.reset) }
+    usingHelper = enabled
     selected = enabled ? helper : native
+    routingGeneration &+= 1
   }
   public func validateAdvanced() async throws { try await helper.validateAdvanced() }
   public func hardwareSnapshot() async throws -> BatterySnapshot? {
-    guard advanced else { return nil }
+    guard usingHelper else { return nil }
     return try await helper.hardwareSnapshot()
   }
   public func status() async throws -> HelperStatus {
-    if let selected { return try await selected.status() }
-    do {
-      let status = try await native.status()
-      selected = native
-      return status
-    } catch BattuneError.unsupported {
-      let status = try await helper.status()
-      selected = helper
-      return status
+    if selected == nil { try await selectHelper(false) }
+    guard let selected else { throw BattuneError.helperUnavailable }
+    let status = try await selected.status()
+    var capabilities = status.capabilities
+    if !usingHelper && advanced {
+      // Helper loss/revalidation must not disable a working native charge ceiling.
+      if let extra = try? await helper.status(), extra.capabilities.canCalibrate {
+        capabilities.forceDischarge = true
+        capabilities.workflowControl = true
+      }
     }
+    return HelperStatus(
+      version: status.version, backend: status.backend, capabilities: capabilities,
+      confirmedLimit: status.confirmedLimit,
+      controlGeneration: routingGeneration &+ (status.controlGeneration ?? 0),
+      hardwareDiagnostic: status.hardwareDiagnostic)
   }
   public func perform(_ command: HardwareCommand) async throws {
     guard let selected else { throw BattuneError.helperUnavailable }
-    if advanced, command != .reset {
-      // Native limits must not prevent the recharge phase. Preserve them in the
-      // native ownership journal and restore when leaving advanced mode.
-      do { try await native.perform(.limit(100)) } catch BattuneError.unsupported {
-        // Older macOS versions have no native limit to release. Permission,
-        // corruption and communication errors still abort the transition.
-      }
+    if usingHelper, command != .reset {
+      // Explicit discharge/calibration and non-native limits may need unrestricted
+      // recharging. This path cannot enforce a charge ceiling during sleep.
+      do { try await native.perform(.limit(100)) } catch BattuneError.unsupported {}
     }
     try await selected.perform(command)
-    if advanced, command == .reset { try await native.perform(.reset) }
+    if usingHelper, command == .reset { try await native.perform(.reset) }
   }
   public func renewLease() async throws {
     guard let selected else { throw BattuneError.helperUnavailable }

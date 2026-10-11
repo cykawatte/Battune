@@ -38,10 +38,11 @@ public struct Capabilities: Codable, Equatable, Sendable {
   /// Present only when macOS itself enforces the charge limit.
   public var nativeChargeLimits: [Int]?
   public var adapterControl: Bool?
+  public var workflowControl: Bool?
   public init(
     readBattery: Bool = false, readTemperature: Bool = false, setLimit: Bool = false,
     toggleCharging: Bool = false, forceDischarge: Bool = false, reset: Bool = false,
-    nativeChargeLimits: [Int]? = nil, adapterControl: Bool? = nil
+    nativeChargeLimits: [Int]? = nil, adapterControl: Bool? = nil, workflowControl: Bool? = nil
   ) {
     self.readBattery = readBattery
     self.readTemperature = readTemperature
@@ -51,12 +52,15 @@ public struct Capabilities: Codable, Equatable, Sendable {
     self.reset = reset
     self.nativeChargeLimits = nativeChargeLimits
     self.adapterControl = adapterControl
+    self.workflowControl = workflowControl
   }
   public var mask: Int32 {
     (setLimit ? 1 : 0) | (toggleCharging ? 2 : 0) | (forceDischarge ? 4 : 0) | (reset ? 8 : 0)
   }
   public var canControl: Bool { (setLimit || toggleCharging) && reset }
-  public var canCalibrate: Bool { toggleCharging && forceDischarge && reset }
+  public var canCalibrate: Bool {
+    (toggleCharging || workflowControl == true) && forceDischarge && reset
+  }
 }
 public enum BattuneError: Int, Error, Codable, Sendable {
   case invalidConfiguration = 1

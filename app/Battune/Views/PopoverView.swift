@@ -33,12 +33,17 @@ struct PopoverView: View {
           .foregroundStyle(
             .secondary)
       }
+      if coordinator.capabilities.adapterControl == true {
+        Text(localized("adapter_limit_warning")).font(.caption).foregroundStyle(.orange)
+      }
       Divider()
       SettingsSlider(
         "charge_limit", value: $settings.value.charge.limit,
-        in: (coordinator.capabilities.nativeChargeLimits?.min()
+        in: ((settings.value.advancedControl == true
+          ? nil : coordinator.capabilities.nativeChargeLimits)?.min()
           ?? (settings.value.charge.sailing ? 21 : 20))...100,
-        supportedValues: coordinator.capabilities.nativeChargeLimits
+        supportedValues: settings.value.advancedControl == true
+          ? nil : coordinator.capabilities.nativeChargeLimits
       ) { editing in
         if !editing, settings.save() { coordinator.updateSettings(settings.value) }
       }

@@ -111,15 +111,15 @@
 
 "mode.7" = "Native Ladegrenze aktiv";
 "confirmed_limit" = "macOS-Ladegrenze";
-"native_control_detail" = "Battune setzt die native macOS-Ladegrenze. macOS bestimmt, wann das Laden pausiert oder fortgesetzt wird, und übernimmt den Temperaturschutz. Eigene Sailing- und Temperaturregeln sowie erzwungenes Entladen sind mit diesem Steuerungsweg nicht verfügbar. macOS kann zur Kalibrierung gelegentlich bis 100 % laden. Beim Deaktivieren oder Beenden stellt Battune die vorherige Grenze wieder her.";
-"native_short_detail" = "Ladeablauf und Temperaturschutz durch macOS.";
+"native_control_detail" = "Battune setzt die native macOS-Ladegrenze und lässt den Netzteileingang eingeschaltet. macOS regelt Ladepausen, Nachladen und Temperaturschutz. Battune erhält die Grenze im Standby; macOS kann zur Messwertkalibrierung gelegentlich bis 100 % laden. Beim Deaktivieren oder Beenden wird die vorherige Grenze wiederhergestellt.";
+"native_short_detail" = "Netzteileingang bleibt aktiv · macOS regelt das Laden, auch im Standby. Gelegentliche Apple-Kalibrierung möglich.";
 "native_no_helper" = "Die native Ladegrenze wird über den macOS-Ladedienst gesetzt. Kein eigener privilegierter Helper und keine Administratorfreigabe erforderlich.";
 
 "setup" = "Einrichtung";
 "setup_native" = "Native Ladegrenze";
-"setup_native_detail" = "macOS bietet auf diesem Steuerungsweg nur die vom Gerät gemeldeten Ladegrenzen an. Dafür ist kein Administrator-Helper nötig.";
+"setup_native_detail" = "Für unterstützte Grenzen wie 80 % nutzt Battune automatisch die macOS-Regelung, auch wenn der erweiterte Modus freigeschaltet ist. Der Netzteileingang bleibt aktiv und die Grenze wird vor Standby nicht aufgehoben. Apple kann sie gelegentlich zur Messwertkalibrierung überschreiten.";
 "setup_advanced" = "Erweiterte Hardwaresteuerung";
-"setup_advanced_detail" = "Ladegrenzen von 20–100 % in 1-%-Schritten, Entladeziel und Kalibrierung benötigen den Helper. Er schaltet ausschließlich den Netzteileingang über CHIE. Beim Halten arbeitet der Mac zeitweise auf Batterie; das erzeugt zusätzliche Zyklen. Ohne eigenes Sailing wird fünf Prozentpunkte unter der Grenze wieder geladen.";
+"setup_advanced_detail" = "Der Helper schaltet Entladeziel, Kalibrierung und zusätzliche Grenzen frei. Unterstützte macOS-Grenzen verwenden weiterhin den Netzbetrieb. Nur für Entladen, Kalibrierung oder andere Grenzen schaltet Battune den Netzteileingang über CHIE. Diese zusätzlichen Grenzen nutzen Batterie während Ladepausen und gelten nicht im Standby.";
 "setup_restrictions" = "Die Administratorfreigabe erlaubt den Root-Helper. Apple kann einzelne SMC-Zugriffe trotzdem sperren; private Apple-Berechtigungen lassen sich nicht per Dialog erteilen. Erst ein erfolgreicher Schalttest schaltet die Funktionen frei.";
 "install_helper" = "Helper installieren …";
 "open_installer" = "Installation öffnen";
@@ -159,13 +159,13 @@
 "tour_note.0" = "Alles bleibt lokal auf deinem Mac. Keine Konten, keine Telemetrie.";
 "tour_title.1" = "Mehr Kontrolle mit dem Helper";
 "tour_subtitle.1" = "Privilegierter Modus — bewusst freigeben";
-"tour_body.1" = "Native macOS-Ladegrenzen funktionieren ohne Helper. Für freie Grenzen von 20–100 %, gezieltes Entladen und Kalibrierung muss Battune den Netzteileingang schalten. Dafür braucht der Helper Administratorrechte.";
+"tour_body.1" = "Für unterstützte Grenzen wie 80 % bleibt das Netzteil aktiv; macOS regelt das Laden auch im Standby. Der Helper braucht Administratorrechte für gezieltes Entladen, Kalibrierung und zusätzliche Grenzen.";
 "tour_helper_steps" = "1. App samt Helper über das Beta-Paket installieren.\n2. Unter Einrichtung den Hardwaretest bestätigen.\n3. Erweiterten Modus einschalten, dann unter Laden die Steuerung aktivieren.";
-"tour_note.1" = "Der Test benötigt ein Netzteil, mindestens 30 % Ladung und weniger als 40 °C. Ladepausen im erweiterten Modus nutzen die Batterie und erzeugen zusätzliche Zyklen.";
+"tour_note.1" = "Der Hardwaretest benötigt ein Netzteil, mindestens 30 % Ladung und unter 40 °C. Zusätzliche, nicht native Grenzen verwenden Batterie und gelten nur im Wachzustand.";
 "tour_title.2" = "Bereit für den Alltag";
 "tour_subtitle.2" = "Kurz einstellen, in der Menüleiste prüfen";
 "tour_body.2" = "Wähle unter Laden deine Grenze und speichere. Entladeziel und Kalibrierung startest du jeweils ausdrücklich. Statistik und Diagnose helfen dir beim Prüfen; diese Einführung findest du jederzeit unter Allgemein.";
-"tour_note.2" = "Beta: Im erweiterten Modus wird der Netzteileingang vor dem Schlafen wieder freigegeben. Danach ist ein neuer Hardwaretest nötig. Ein kompletter Kalibrierungszyklus kann Stunden dauern.";
+"tour_note.2" = "Beta: Native Grenzen bleiben im Standby gesetzt; Apple kann sie zur Messwertkalibrierung überschreiten. Adapter-Workflows werden beim Schlafen unterbrochen und benötigen danach einen neuen Test.";
 "tour_back" = "Zurück";
 "tour_next" = "Weiter";
 "tour_skip" = "Später ansehen";
@@ -173,3 +173,6 @@
 "tour_replay" = "Kurze Einführung ansehen …";
 "choose_installer" = "Battune-Installationspaket auswählen";
 "choose_installer_detail" = "Wähle das passende Beta- oder Helper-Paket aus deinem GitHub-Download. Es muss zu dieser App-Version gehören.";
+
+"automatic_limit_routing" = "80, 85, 90, 95 und 100 % verwenden auf unterstützten Macs die native Regelung mit aktivem Netzteil. Andere Grenzen benötigen den Adaptermodus und gelten nur im Wachzustand.";
+"adapter_limit_warning" = "Adaptermodus: Ladepausen verbrauchen Batterie. Diese Grenze gilt nicht im Standby. Für Netzbetrieb und Standby eine unterstützte native Grenze wählen.";

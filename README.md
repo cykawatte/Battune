@@ -173,3 +173,18 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md) and
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Licensed under [MIT](LICENSE),
 copyright Battune contributors. See [FINAL_REPORT.md](FINAL_REPORT.md) for the
 status of this development iteration.
+
+## Native limits and standby / Native Grenzen und Standby
+
+Supported limits (80/85/90/95/100% on the tested Mac) always use macOS control,
+even with advanced mode unlocked. Battune keeps adapter input enabled and does
+not clear the native limit on sleep. Explicit discharge/calibration temporarily
+uses the helper and returns to the native limit afterwards. Apple may occasionally
+exceed native limits for gauge calibration; this is not a promise of an absolute ceiling.
+Other limits still require adapter mode: battery use during holds, no enforcement
+while asleep. Physical overnight sleep behavior remains to be measured.
+
+**Deutsch:** Bei unterstützten Grenzen wie 80 % bleibt der Netzteileingang aktiv.
+Der erweiterte Modus ersetzt diese Regelung nicht mehr durch Batteriezyklen.
+Die native Grenze bleibt im Standby gesetzt; gelegentliche Apple-Vollladungen zur
+Messwertkalibrierung bleiben möglich. Andere Grenzen gelten nur im Wachzustand.

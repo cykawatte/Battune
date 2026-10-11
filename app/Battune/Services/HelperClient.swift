@@ -5,6 +5,7 @@ import ServiceManagement
 
 public protocol HardwareClient: AnyObject {
   func renewLease() async throws
+  func configureControl(advanced: Bool, limit: Int, workflow: Bool) async throws
   func configureAdvanced(_ enabled: Bool) async throws
   func validateAdvanced() async throws
   func hardwareSnapshot() async throws -> BatterySnapshot?
@@ -12,6 +13,9 @@ public protocol HardwareClient: AnyObject {
   func perform(_ command: HardwareCommand) async throws
 }
 extension HardwareClient {
+  public func configureControl(advanced: Bool, limit: Int, workflow: Bool) async throws {
+    try await configureAdvanced(advanced)
+  }
   public func configureAdvanced(_ enabled: Bool) async throws {
     if enabled { throw BattuneError.unsupported }
   }

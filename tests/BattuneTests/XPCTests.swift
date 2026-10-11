@@ -84,7 +84,11 @@ private final class XPCResult: @unchecked Sendable {
     let mock = MockBackend()
     let gate = HardwareGate(backend: mock, leaseDuration: 0.02)
     try gate.perform(.charging(false))
-    try await Task.sleep(nanoseconds: 100_000_000)
+    // Wait for the observable result, allowing CI timer scheduling latency.
+    for _ in 0..<200 {
+      if mock.commands.count == 2 { break }
+      try await Task.sleep(nanoseconds: 10_000_000)
+    }
     expectEqual(mock.commands, [.charging(false), .reset])
     try await Task.sleep(nanoseconds: 50_000_000)
     expectEqual(mock.commands.count, 2)

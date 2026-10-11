@@ -79,11 +79,20 @@ import OSLog
   private func evaluate() async {
     snapshot = provider.read()
     let currentRevision = revision
+    let schedule = try? ScheduleResolver.active(settings.schedules, at: snapshot.timestamp)
+    let requestedLimit =
+      calibration.active
+      ? settings.charge.limit : (schedule?.settings.limit ?? settings.charge.limit)
     do {
-      try await client.configureAdvanced(settings.advancedControl == true)
+      try await client.configureControl(
+        advanced: settings.advancedControl == true, limit: requestedLimit,
+        workflow: calibration.active || dischargeTarget != nil)
       let status = try await client.status()
       guard status.version == "0.1.0-beta.1" else { throw BattuneError.protocolMismatch }
-      if status.controlGeneration != helper?.controlGeneration { executor.invalidate() }
+      if status.controlGeneration != helper?.controlGeneration || status.backend != helper?.backend
+      {
+        executor.invalidate()
+      }
       helper = status
       capabilities = status.capabilities
       helperError = nil
@@ -132,7 +141,7 @@ import OSLog
         return
       }
       var charge = settings.charge
-      if let schedule = try ScheduleResolver.active(settings.schedules, at: snapshot.timestamp),
+      if let schedule,
         !calibration.active
       {
         charge.limit = schedule.settings.limit
@@ -144,6 +153,11 @@ import OSLog
           store.scheduleToken = token
           if settings.controlEnabled && capabilities.forceDischarge {
             dischargeTarget = schedule.dischargeTarget
+            if dischargeTarget != nil {
+              // Re-route before issuing any command for the scheduled workflow.
+              pending = true
+              return
+            }
           }
         }
       }
@@ -207,7 +221,10 @@ import OSLog
       state = plan.state
       sensorMissing = plan.sensorMissing
       mode = calibration.active && plan.mode != .thermalHold ? .calibration : plan.mode
-      if plan.dischargeComplete { dischargeTarget = nil }
+      if plan.dischargeComplete {
+        dischargeTarget = nil
+        pending = true
+      }
       lastError = nil
     } catch {
       if sleeping { return }

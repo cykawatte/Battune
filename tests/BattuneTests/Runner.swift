@@ -69,6 +69,10 @@ enum TestFailure: Error { case missingValue }
         { try native.testFailedRecoveryAndCorruption() }
       ),
       ("Native disabled baseline restoration", { try native.testDisabledBaseline() }),
+      (
+        "Advanced native routing, sleep and workflow recovery",
+        { try await native.testAdvancedModeKeepsNativeLimitAcrossSleep() }
+      ),
       ("Native coordinator and shutdown", { try await native.testNativeCoordinator() }),
       ("XPC wire roundtrip", { try await xpc.testProtocolRoundtrip() }),
       ("Expired control lease resets hardware", { try await xpc.testLeaseExpiration() }),

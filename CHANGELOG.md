@@ -2,6 +2,8 @@
 
 ## 0.1.0-beta.1 — 2026-10-11
 
+- Prefer native charge limits even with advanced mode unlocked; preserve them across sleep and after workflows.
+- Report fixed-key SMC read access from the actual root helper.
 - First installable beta: universal app and matching privileged helper in one installer.
 - Battune app icon, separate helper icon and branded installer.
 - Short German/English first-run tutorial with privileged-mode setup and replay.

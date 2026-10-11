@@ -153,6 +153,75 @@ final class FakeNativeTransport: NativeChargeTransport {
     await coordinator.shutdown()
     expectEqual(fake.state.limit, 90)
   }
+  func testAdvancedModeKeepsNativeLimitAcrossSleep() async throws {
+    let (fake, url, session) = fixture()
+    defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+    let suite = "Battune.routing-tests.\(UUID().uuidString)"
+    let defaults = try unwrap(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let helper = MockBackend()
+    helper.supported.adapterControl = true
+    let router = PlatformHardwareClient(
+      native: NativeChargeClient(session: session), helper: helper)
+    var settings = AppSettings()
+    settings.onboardingComplete = true
+    settings.controlEnabled = true
+    settings.advancedControl = true
+    let coordinator = ChargeCoordinator(
+      settings: settings, store: SettingsStore(defaults: defaults),
+      history: HistoryStore(url: url.deletingLastPathComponent().appendingPathComponent("history")),
+      provider: helper, client: router)
+    coordinator.refresh()
+    await settle(coordinator)
+    expectEqual(coordinator.mode, .nativeLimit)
+    expectEqual(fake.state.limit, 80)
+    expectTrue(helper.commands.isEmpty)  // Never cut AC merely because advanced is enabled.
+    expectTrue(coordinator.capabilities.canCalibrate)
+    expectTrue(coordinator.capabilities.forceDischarge)
+    coordinator.willSleep()
+    expectEqual(fake.state.limit, 80)
+    expectEqual(fake.writes, [80])
+    helper.disconnected = true  // Sleep revokes helper validation; native stays usable.
+    coordinator.didWake()
+    await settle(coordinator)
+    expectEqual(coordinator.mode, .nativeLimit)
+    expectEqual(fake.state.limit, 80)
+    expectFalse(coordinator.capabilities.canCalibrate)
+    helper.disconnected = false
+    coordinator.refresh()
+    await settle(coordinator)
+    coordinator.startDischarge(target: 40)
+    await settle(coordinator)
+    expectTrue(helper.commands.contains(.discharge(true)))
+    expectEqual(fake.state.limit, 100)
+    coordinator.cancelWorkflow()
+    await settle(coordinator)
+    expectEqual(helper.commands.last, .reset)
+    expectEqual(coordinator.mode, .nativeLimit)
+    expectEqual(fake.state.limit, 80)
+    coordinator.startCalibration()
+    await settle(coordinator)
+    expectTrue(coordinator.calibration.active)
+    expectEqual(coordinator.mode, .calibration)
+    coordinator.willSleep()
+    expectEqual(coordinator.calibration.phase, 7)
+    coordinator.didWake()
+    await settle(coordinator)
+    expectEqual(coordinator.mode, .nativeLimit)
+    expectEqual(fake.state.limit, 80)
+    settings.charge.limit = 77
+    coordinator.updateSettings(settings)
+    await settle(coordinator)
+    expectTrue(coordinator.capabilities.adapterControl == true)
+    expectEqual(fake.state.limit, 100)
+    settings.charge.limit = 80
+    coordinator.updateSettings(settings)
+    await settle(coordinator)
+    expectEqual(coordinator.mode, .nativeLimit)
+    expectEqual(fake.state.limit, 80)
+    await coordinator.shutdown()
+    expectEqual(fake.state.limit, 90)
+  }
   func testNativeTimeout() async throws {
     let (fake, url, session) = fixture()
     defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }

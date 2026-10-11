@@ -14,7 +14,19 @@ public protocol AdapterTransport: AnyObject {
 }
 extension AdapterTransport { public var diagnostic: String? { nil } }
 public final class SMCAdapterTransport: AdapterTransport {
-  public private(set) var diagnostic: String?
+  private var lastWrite: String?
+  private lazy var accessReport: String = {
+    // Fixed, read-only probes in the actual root process; never infer root access
+    // from the unprivileged GUI's result and never try writing unknown keys.
+    let results = (0...8).map { index in
+      let key = SMCProbe.read(index)
+      return "\(key.key): \(key.result)"
+    }
+    return "SMC read-only probe (uid \(geteuid()))\n" + results.joined(separator: "\n")
+  }()
+  public var diagnostic: String? {
+    [lastWrite, accessReport].compactMap { $0 }.joined(separator: "\n")
+  }
   public init() {}
   public var privileged: Bool { geteuid() == 0 }
   public func isEnabled() throws -> Bool {
@@ -27,7 +39,7 @@ public final class SMCAdapterTransport: AdapterTransport {
   public func setEnabled(_ enabled: Bool) throws {
     guard privileged else { throw BattuneError.unauthorized }
     let result = bt_smc_adapter(enabled ? 1 : 0)
-    diagnostic = String(
+    lastWrite = String(
       format: "CHIE write %@: IOReturn 0x%08x (uid %d)", enabled ? "enable" : "disable", result,
       geteuid())
     guard result == 0 else {
