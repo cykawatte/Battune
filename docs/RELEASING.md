@@ -31,3 +31,12 @@ do not delete it before restoring an active session. The legacy read-only backen
 has no custom hardware state to restore.
 Delete local settings/history separately if desired. Never copy the launchd plist
 manually into system directories; use ServiceManagement.
+
+## Advanced helper follow-up
+
+Local adapter mode has a separate `build-helper-installer.sh` preparation step.
+Generate the package after final app signing and keep it beside the app. Any
+signature change invalidates its exact-hash manifest and requires regeneration.
+`uninstall-local-helper.sh` restores journaled adapter state before removal.
+Do not publish or claim physical validation before the pending administrator,
+CHIE, sleep/crash recovery and full-cycle tests in FEATURE_PERMISSIONS.md.

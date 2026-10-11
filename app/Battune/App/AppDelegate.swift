@@ -80,7 +80,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
       wake: { coordinator.didWake() })
     monitor?.start()
     coordinator.refresh()
-    if !settings.value.onboardingComplete || diagnosticLaunch { showSettings() }
+    if !settings.value.onboardingComplete || settings.value.setupComplete != true
+      || diagnosticLaunch
+    {
+      showSettings()
+    }
   }
   private var historyLoadFailed = false
   @objc private func togglePopover() {

@@ -7,6 +7,7 @@ public final class HardwareGate {
   private let leaseDuration: TimeInterval
   private let backend: BatteryHardwareBackend
   private let lock = NSLock()
+  private var generation: UInt64 = 0
   private var lastRefill: TimeInterval = 0
   private var tokens = 12.0
   private var lease: DispatchWorkItem?
@@ -17,11 +18,28 @@ public final class HardwareGate {
     self.backend = backend
     self.leaseDuration = max(0.01, leaseDuration)
   }
+  public func validateAdapter() throws {
+    try lock.withLock {
+      guard let adapter = backend as? AdapterBackend else { throw BattuneError.unsupported }
+      refill(now: ProcessInfo.processInfo.systemUptime)
+      guard tokens >= 2 else { throw BattuneError.rateLimited }
+      tokens -= 2
+      try adapter.validate()
+      confirmed = [:]
+      lease?.cancel()
+      lease = nil
+      leaseGeneration += 1
+    }
+  }
   public func perform(
     _ command: HardwareCommand, now: TimeInterval = ProcessInfo.processInfo.systemUptime
   ) throws {
     lock.lock()
     defer { lock.unlock() }
+    if generation != backend.generation {
+      confirmed = [:]
+      generation = backend.generation
+    }
     let caps = backend.capabilities()
     let key: String
     switch command {
@@ -43,8 +61,7 @@ public final class HardwareGate {
     if confirmed[key] == command { return }
     // A burst admits a complete transaction; sustained writes refill at 12/minute.
     // Reset is admitted even after a failed transaction exhausts the bucket.
-    tokens = min(12, tokens + max(0, now - lastRefill) / 5)
-    lastRefill = now
+    refill(now: now)
     if command != .reset {
       guard tokens >= 1 else { throw BattuneError.rateLimited }
       tokens -= 1
@@ -53,6 +70,7 @@ public final class HardwareGate {
       confirmed = [:]
       throw error
     }
+    generation = backend.generation
     if command == .reset {
       lease?.cancel()
       lease = nil
@@ -63,6 +81,10 @@ public final class HardwareGate {
       confirmed[key] = command
       armLease()
     }
+  }
+  private func refill(now: TimeInterval) {
+    tokens = min(12, tokens + max(0, now - lastRefill) / 5)
+    lastRefill = now
   }
   // Called with the gate lock held. No timer exists while hardware is untouched.
   private func armLease() {
@@ -85,6 +107,12 @@ public final class HardwareGate {
     guard generation == leaseGeneration, lease != nil else { return }
     lease = nil
     confirmed = [:]
-    do { try backend.perform(.reset) } catch { logger.error("Control lease expired; reset failed") }
+    if let adapter = backend as? AdapterBackend {
+      adapter.prepareForSleep()
+    } else {
+      do { try backend.perform(.reset) } catch {
+        logger.error("Control lease expired; reset failed")
+      }
+    }
   }
 }

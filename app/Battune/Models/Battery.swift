@@ -12,6 +12,9 @@ public struct BatterySnapshot: Codable, Equatable, Sendable {
   public var maximumCapacity: Int?
   public var designCapacity: Int?
   public var health: Double?
+  public var voltage: Double?
+  public var current: Double?
+  public var power: Double?
   public var adapterWatts: Int?
   public var timestamp: Date
   public init(
@@ -34,10 +37,11 @@ public struct Capabilities: Codable, Equatable, Sendable {
   public var reset: Bool
   /// Present only when macOS itself enforces the charge limit.
   public var nativeChargeLimits: [Int]?
+  public var adapterControl: Bool?
   public init(
     readBattery: Bool = false, readTemperature: Bool = false, setLimit: Bool = false,
     toggleCharging: Bool = false, forceDischarge: Bool = false, reset: Bool = false,
-    nativeChargeLimits: [Int]? = nil
+    nativeChargeLimits: [Int]? = nil, adapterControl: Bool? = nil
   ) {
     self.readBattery = readBattery
     self.readTemperature = readTemperature
@@ -46,12 +50,13 @@ public struct Capabilities: Codable, Equatable, Sendable {
     self.forceDischarge = forceDischarge
     self.reset = reset
     self.nativeChargeLimits = nativeChargeLimits
+    self.adapterControl = adapterControl
   }
   public var mask: Int32 {
     (setLimit ? 1 : 0) | (toggleCharging ? 2 : 0) | (forceDischarge ? 4 : 0) | (reset ? 8 : 0)
   }
   public var canControl: Bool { (setLimit || toggleCharging) && reset }
-  public var canCalibrate: Bool { setLimit && toggleCharging && forceDischarge && reset }
+  public var canCalibrate: Bool { toggleCharging && forceDischarge && reset }
 }
 public enum BattuneError: Int, Error, Codable, Sendable {
   case invalidConfiguration = 1
@@ -69,13 +74,17 @@ public struct HelperStatus: Codable, Sendable {
   public let backend: String
   public let capabilities: Capabilities
   public let confirmedLimit: Int?
+  public let controlGeneration: UInt64?
+  public let hardwareDiagnostic: String?
   public init(
     version: String = "0.1.0-dev", backend: String, capabilities: Capabilities,
-    confirmedLimit: Int? = nil
+    confirmedLimit: Int? = nil, controlGeneration: UInt64? = nil, hardwareDiagnostic: String? = nil
   ) {
     self.version = version
     self.backend = backend
     self.capabilities = capabilities
     self.confirmedLimit = confirmedLimit
+    self.controlGeneration = controlGeneration
+    self.hardwareDiagnostic = hardwareDiagnostic
   }
 }

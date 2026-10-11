@@ -5,10 +5,12 @@ import IOKit
 
 public protocol BatteryHardwareBackend: AnyObject {
   var name: String { get }
+  var generation: UInt64 { get }
   func capabilities() -> Capabilities
   func readBatterySnapshot() -> BatterySnapshot
   func perform(_ command: HardwareCommand) throws
 }
+extension BatteryHardwareBackend { public var generation: UInt64 { 0 } }
 /// No unvalidated SMC keys are read or written. Service presence does not establish write support.
 public class ReadOnlyBackend: BatteryHardwareBackend {
   public let name: String
@@ -43,7 +45,7 @@ public final class IntelBackend: ReadOnlyBackend {
 public enum BackendFactory {
   public static func make() -> BatteryHardwareBackend {
     #if arch(arm64)
-      return AppleSiliconBackend()
+      return AdapterBackend()
     #else
       return IntelBackend()
     #endif

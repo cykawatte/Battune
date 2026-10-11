@@ -37,7 +37,23 @@ enum TestFailure: Error { case missingValue }
     let integration = IntegrationTests()
     let xpc = XPCTests()
     let native = NativeChargeTests()
+    let adapter = AdapterTests()
     let tests: [(String, () async throws -> Void)] = [
+      ("Adapter validation and preconditions", { try adapter.testValidation() }),
+      ("Adapter failure rollback", { try adapter.testRollback() }),
+      ("Adapter composition and crash recovery", { try adapter.testCompositionAndRecovery() }),
+      ("Adapter reserve and sleep recovery", { try adapter.testSafetyAndSleep() }),
+      ("Adapter gate cache after recovery", { try adapter.testGateRecoveryInvalidatesCache() }),
+      (
+        "Adapter full coordinator calibration and arbitrary limit",
+        { try await adapter.testCoordinatorFullWorkflow() }
+      ),
+      (
+        "Controller switching restores both backends",
+        { try await adapter.testRoutingRestoresControllers() }
+      ),
+      ("Local exact-signature trust", { try adapter.testPinnedTrust() }),
+      ("CSV and backwards compatible settings", { try adapter.testHistoryCSVAndCompatibility() }),
       ("Native timeout and expired queued writes", { try await native.testNativeTimeout() }),
       ("Native charge write, readback and restore", { try native.testWriteReadbackAndRestore() }),
       (

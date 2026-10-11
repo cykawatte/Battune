@@ -2,6 +2,7 @@ import BattuneDomain
 import Foundation
 
 @objc public protocol BattuneHelperProtocol {
+  func validateAdapterControl(reply: @escaping (Int) -> Void)
   func renewControlLease(reply: @escaping (Int) -> Void)
   func getStatus(reply: @escaping (Data?, Int) -> Void)
   func getBatterySnapshot(reply: @escaping (Data?, Int) -> Void)

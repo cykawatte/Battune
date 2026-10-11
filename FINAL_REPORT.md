@@ -1,3 +1,10 @@
+> **Current follow-up, 2026-10-11:** Advanced CHIE adapter control, arbitrary
+> 20–100% limits, discharge/calibration, permission setup, sensor statistics,
+> CSV and diagnostic export are implemented. 15 Rust + 37 Swift tests pass.
+> Root installation and physical CHIE validation await user approval.
+> See [feature status and exact permissions](docs/FEATURE_PERMISSIONS.md).
+> The report below is historical and is not the current feature inventory.
+
 > Historical initial implementation report. The native hardware-control follow-up
 > of 2026-10-11 supersedes the statements below about all writes being unsupported.
 > See [current hardware support](docs/HARDWARE_SUPPORT.md) and README for the

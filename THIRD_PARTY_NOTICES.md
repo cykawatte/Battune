@@ -26,6 +26,16 @@ transaction/journal implementation were independently written; no upstream sourc
 or binary is included. Apple documents the user-facing native limit behavior at
 [Apple Support](https://support.apple.com/en-au/102338).
 
+## AppleSMC protocol research
+
+Fixed key meanings, type metadata and the 80-byte user-client wire ABI were
+cross-checked against the running device, installed IOKit headers,
+[batt SMC research](https://github.com/charlie0129/batt/tree/master/pkg/smc) and
+[gosmc](https://github.com/charlie0129/gosmc). These repositories are research
+references only, not bundled dependencies. The C bridge, fixed-operation checks,
+Swift ownership journal, watchdog and permission flow are independently written.
+No upstream code or binary is redistributed.
+
 ## Rust standard library (MIT option)
 
 Copyright (c) The Rust Project Contributors

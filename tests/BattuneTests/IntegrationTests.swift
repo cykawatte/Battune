@@ -88,10 +88,10 @@ import Foundation
     store.append(BatterySnapshot(percentage: 80, pluggedIn: true, timestamp: date))
     store.append(
       BatterySnapshot(percentage: 80, pluggedIn: true, timestamp: date.addingTimeInterval(600)))
-    expectEqual(store.samples.count, 1)
+    expectEqual(store.samples.count, 2)
     store.append(
       BatterySnapshot(percentage: 80, pluggedIn: false, timestamp: date.addingTimeInterval(601)))
-    expectEqual(store.samples.count, 2)
+    expectEqual(store.samples.count, 3)
     expectFalse(FileManager.default.fileExists(atPath: url.path))
   }
   func testDSTAndTimezone() throws {

@@ -7,6 +7,7 @@ cargo clippy --locked --manifest-path core/Cargo.toml --all-targets --all-featur
 swift format lint --strict --recursive Package.swift app helper shared tests
 xcrun clang -fobjc-arc -fblocks -Wall -Wextra -Werror -fsyntax-only \
   -I shared/NativeCharge/include shared/NativeCharge/NativeCharge.m
+xcrun clang -Wall -Wextra -Werror -fsyntax-only -I shared/NativeCharge/include shared/NativeCharge/BattuneSMC.c
 for script in scripts/*.sh; do bash -n "$script"; done
 plutil -lint packaging/Info.plist packaging/org.battune.helper.plist Battune.xcodeproj/project.pbxproj
 if rg -n 'try!|as!|fatalError\(|TODO|FIXME' app helper shared core/src; then

@@ -11,23 +11,24 @@ and a separate, narrowly scoped privileged helper. It is an independent implemen
 Battune uses the same macOS charge service as System Settings, with a verified
 write/readback cycle and restoration of the previous limit. On the tested Mac16,12
 (macOS 27.0.1), the supported limits are **80, 85, 90, 95 and 100%**. No root helper
-or Apple developer identity is required for this native path. Direct SMC gates,
-forced discharge and calibration remain unavailable on this backend.
+or Apple developer identity is required for this native path. The advanced **CHIE adapter mode** additionally implements 20–100% limits,
+forced discharge and calibration. It needs an administrator-approved helper and
+an explicit off/on/readback test. That physical test is still pending; see
+[features and permissions](docs/FEATURE_PERMISSIONS.md).
 
 ## Features
 
 - Native AppKit menu bar and SwiftUI settings in English and German.
 - Real IOKit battery readings, explicit unknown values, event-driven updates and sleep/wake handling.
 - Real native charge limits with runtime detection of supported values.
-- Mock-tested 20–100% policy, sailing and custom thermal protection for future direct-control backends.
+- Advanced 20–100% adapter control, sailing, thermal protection and fail-safe recovery.
 - Explicit discharge and cancellable calibration workflows, gated by backend capabilities.
 - Weekly schedules with local timezone and daylight-saving handling.
-- Bounded local history, native chart, diagnostics and optional notifications.
+- Live temperature/voltage/current/power/capacity, bounded history, 24h/7d/30d charts, CSV and diagnostic exports.
 - Validated preferences, launch at login, onboarding and reset/recovery UI.
 - XPC authentication, argument validation, write deduplication, rate limits and expiring control leases.
 
-The native write/restore path has been tested on the local Mac. Legacy controller
-workflows are exercised against a **test-only mock backend**.
+The native write/restore path has been tested on the local Mac. Advanced workflows and adapter failures have been exercised against a **test-only transport**; real privileged adapter validation is pending.
 Unsupported real operations are displayed as unsupported, never reported as successful.
 
 ## Screenshots
@@ -93,15 +94,24 @@ logic. [Architecture](docs/ARCHITECTURE.md), [ADRs](docs/adr/0001.md),
 
 ## Security and reset
 
-An Apple-issued matching team signature is required for privileged XPC. Unsigned
-and ad-hoc clients are rejected. No shell, file-write or arbitrary SMC-key API
-exists. See [security model](docs/SECURITY_MODEL.md).
+The optional root helper authenticates exact app identity through matching Apple
+team signatures or administrator-installed exact code hashes for local builds.
+There is no unrestricted unsigned bypass or arbitrary SMC write API. See the
+[security model](docs/SECURITY_MODEL.md).
 
-Native reset restores the prior macOS limit only while Battune still owns the
-current setting. A durable journal recovers this state after app restart. The
-legacy read-only backend returns `Unsupported`. Battune never promises to override
-macOS battery-health management or restore unverified hardware state. Disable
-control and reset successfully before unregistering a validated helper or uninstalling.
+Native reset restores the previous macOS limit while still owned. Advanced reset
+restores the journaled adapter input. Sleep, lease expiry and reserve protection
+revoke advanced validation. A killed helper recovers at launchd restart; failed
+hardware access cannot be repaired by a software promise.
+
+```sh
+# Prepare only; does not install or run privileged software:
+./scripts/build-helper-installer.sh release
+```
+
+Install the matching package through Setup only after approval. Keep it beside
+the app. After every rebuild, regenerate/reinstall it because signatures change.
+[Permission, recovery and uninstall instructions](docs/FEATURE_PERMISSIONS.md).
 
 ## Privacy
 
@@ -117,11 +127,11 @@ network access. History and settings stay local. [Privacy policy](PRIVACY.md).
   changes. Only the values reported by macOS are accepted.
 - Direct SMC writes, forced discharge, custom thermal thresholds and sailing
   remain unsupported by the native backend.
-- No developer identity available for privileged installation/end-to-end signed XPC testing.
+- Local exact-hash helper installation and real CHIE switching await user approval; published Team-ID signing also remains untested.
 - macOS 13 and Intel runtime behavior require testing on those machines.
-- OS-provided battery fields vary. This host exposes percentage and cycles but
-  no reliable temperature or raw capacity through the selected registry properties.
-- Calibration safely interrupts after restart; it requires explicit recovery, not automatic resumption.
+- Sensor fields vary by device. This host now exposes temperature through SMC and actual mAh capacities in nested BatteryData.
+- Advanced control restores AC input on sleep and requires another validation after wake. Calibration interrupts on sleep/restart; it does not resume automatically.
+- Adapter mode uses battery during holds, adds cycles and does not enforce the software charge limit while asleep.
 - Native SwiftPM build mode is used for CLT compatibility; Swift 6.4 warns that
   this build mode is deprecated. Migration is tracked in the architecture notes.
 - Performance budgets are goals. See actual measurements and unmeasured metrics

@@ -1,7 +1,8 @@
+import Combine
 import Foundation
 
-public final class HistoryStore {
-  public private(set) var samples: [BatterySnapshot] = []
+public final class HistoryStore: ObservableObject {
+  @Published public private(set) var samples: [BatterySnapshot] = []
   private let url: URL
   private var dirtyCount = 0
   private var lastSample: Date?
@@ -16,9 +17,12 @@ public final class HistoryStore {
     guard size <= 8_000_000 else { throw BattuneError.corruptPersistence }
     samples = try JSONDecoder().decode([BatterySnapshot].self, from: Data(contentsOf: url))
     prune(now: now)
+    lastSample = samples.last?.timestamp
   }
   public func append(_ snapshot: BatterySnapshot) {
-    guard snapshot.percentage != nil else { return }
+    guard let percentage = snapshot.percentage, (0...100).contains(percentage),
+      lastSample.map({ snapshot.timestamp >= $0 }) ?? true
+    else { return }
     let transition =
       samples.last.map { $0.charging != snapshot.charging || $0.pluggedIn != snapshot.pluggedIn }
       ?? false
@@ -26,13 +30,6 @@ public final class HistoryStore {
       return
     }
     lastSample = snapshot.timestamp
-    if let last = samples.last, last.percentage == snapshot.percentage,
-      last.charging == snapshot.charging,
-      last.pluggedIn == snapshot.pluggedIn, last.temperature == snapshot.temperature,
-      last.maximumCapacity == snapshot.maximumCapacity
-    {
-      return
-    }
     samples.append(snapshot)
     prune(now: snapshot.timestamp)
     dirtyCount += 1
@@ -48,6 +45,26 @@ public final class HistoryStore {
       at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
     try JSONEncoder().encode(samples).write(to: url, options: .atomic)
     dirtyCount = 0
+  }
+  public func exportCSV(since: Date = .distantPast) -> String {
+    let iso = ISO8601DateFormatter()
+    let header =
+      "timestamp,charge_percent,plugged_in,charging,temperature_c,voltage_v,current_a,power_w,capacity_mah,design_mah,cycle_count"
+    let rows = samples.filter { $0.timestamp >= since }.map { value in
+      var fields: [String] = [iso.string(from: value.timestamp)]
+      fields.append(value.percentage.map { String($0) } ?? "")
+      fields.append(value.pluggedIn.map { String($0) } ?? "")
+      fields.append(value.charging.map { String($0) } ?? "")
+      fields.append(value.temperature.map { String($0) } ?? "")
+      fields.append(value.voltage.map { String($0) } ?? "")
+      fields.append(value.current.map { String($0) } ?? "")
+      fields.append(value.power.map { String($0) } ?? "")
+      fields.append(value.maximumCapacity.map { String($0) } ?? "")
+      fields.append(value.designCapacity.map { String($0) } ?? "")
+      fields.append(value.cycleCount.map { String($0) } ?? "")
+      return fields.joined(separator: ",")
+    }
+    return ([header] + rows).joined(separator: "\n") + "\n"
   }
   public func clear() throws {
     if FileManager.default.fileExists(atPath: url.path) {

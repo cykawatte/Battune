@@ -40,17 +40,29 @@ public struct SystemBatteryProvider: BatteryProviding {
         == KERN_SUCCESS,
       let d = properties?.takeRetainedValue() as? [String: Any]
     else { return result }
+    let battery = d["BatteryData"] as? [String: Any] ?? [:]
     result.cycleCount = nonnegative(d["CycleCount"])
     // Raw capacities are mAh. Do not confuse percentage-valued MaxCapacity on Apple Silicon with mAh.
-    result.currentCapacity = nonnegative(d["AppleRawCurrentCapacity"])
-    result.maximumCapacity = nonnegative(d["AppleRawMaxCapacity"])
-    result.designCapacity = nonnegative(d["DesignCapacity"])
+    result.currentCapacity =
+      nonnegative(d["AppleRawCurrentCapacity"]) ?? nonnegative(battery["RemainingCapacity"])
+    result.maximumCapacity =
+      nonnegative(d["AppleRawMaxCapacity"]) ?? nonnegative(battery["FullChargeCapacity"])
+    result.designCapacity =
+      nonnegative(d["DesignCapacity"]) ?? nonnegative(battery["DesignCapacity"])
     if let max = result.maximumCapacity, let design = result.designCapacity, design > 0 {
       result.health = Double(max) / Double(design) * 100
     }
     // AppleSmartBattery Temperature uses centi-Celsius; reject missing or implausible sensor data.
     if let raw = d["Temperature"] as? Double, raw > 0, raw <= 10_000 {
       result.temperature = raw / 100
+    }
+    #if arch(arm64)
+      result.temperature = result.temperature ?? SMCProbe.batteryTemperature
+    #endif
+    result.voltage = (d["Voltage"] as? Double).map { $0 / 1000 }
+    result.current = (d["InstantAmperage"] as? Double ?? d["Amperage"] as? Double).map { $0 / 1000 }
+    if let voltage = result.voltage, let current = result.current {
+      result.power = voltage * current
     }
     if let adapter = d["AdapterDetails"] as? [String: Any] {
       result.adapterWatts = nonnegative(adapter["Watts"])

@@ -78,20 +78,16 @@ import OSLog
   }
   private func evaluate() async {
     snapshot = provider.read()
-    if settings.statisticsEnabled {
-      history.append(snapshot)
-      do {
-        try history.flush()
-        historyError = false
-      } catch { historyError = true }
-    }
     let currentRevision = revision
     do {
+      try await client.configureAdvanced(settings.advancedControl == true)
       let status = try await client.status()
       guard status.version == "0.1.0-dev" else { throw BattuneError.protocolMismatch }
+      if status.controlGeneration != helper?.controlGeneration { executor.invalidate() }
       helper = status
       capabilities = status.capabilities
       helperError = nil
+      if let hardware = try await client.hardwareSnapshot() { snapshot = hardware }
     } catch {
       helper = nil
       helperError = error as? BattuneError ?? .helperUnavailable
@@ -104,6 +100,13 @@ import OSLog
         suspended = true
       }
     }
+    if settings.statisticsEnabled {
+      history.append(snapshot)
+      do {
+        try history.flush()
+        historyError = false
+      } catch { historyError = true }
+    }
     guard currentRevision == revision, !sleeping else {
       pending = !sleeping
       return
@@ -112,14 +115,17 @@ import OSLog
       mode = .system
       return
     }
-    guard capabilities.canControl else {
-      mode = settings.controlEnabled ? .unavailable : .system
-      return
-    }
     do {
-      if needsReset {
+      // Recovery remains reachable even after advanced validation is revoked.
+      if needsReset, capabilities.reset {
         try await executor.apply([.reset])
         needsReset = false
+      }
+      guard capabilities.canControl else {
+        cancelCalibrationState(interrupted: true)
+        dischargeTarget = nil
+        mode = settings.controlEnabled ? .unavailable : .system
+        return
       }
       guard !suspended else {
         mode = .unavailable
@@ -140,6 +146,11 @@ import OSLog
             dischargeTarget = schedule.dischargeTarget
           }
         }
+      }
+      if capabilities.adapterControl == true, !charge.sailing {
+        charge.sailing = true
+        charge.lower = max(20, charge.limit - 5)
+        if charge.limit == 20 { charge.sailing = false }
       }
       if let limits = capabilities.nativeChargeLimits {
         // Native firmware owns charging hysteresis, thermal protection and sleep.
@@ -185,7 +196,11 @@ import OSLog
       let plan = try CoreBridge.evaluate(
         settings: charge, enabled: settings.controlEnabled, target: dischargeTarget,
         snapshot: snapshot, state: state, capabilities: capabilities)
-      try await executor.apply(plan.commands)
+      let commands: [HardwareCommand] =
+        calibration.phase == 2 && capabilities.adapterControl == true
+          && !plan.sensorMissing && !plan.state.thermalHold
+        ? [.discharge(false), .charging(true)] : plan.commands
+      try await executor.apply(commands)
       if settings.controlEnabled && !plan.commands.contains(.reset) {
         try await client.renewLease()
       }
@@ -209,6 +224,12 @@ import OSLog
       do { try await executor.apply([.reset]) } catch { logger.error("Hardware recovery failed") }
       logger.error("Control suspended after error")
     }
+  }
+  public func validateAdvanced() async {
+    do {
+      try await client.validateAdvanced()
+      retry()
+    } catch { lastError = error as? BattuneError ?? .hardwareError }
   }
   public func startDischarge(target: Int) {
     guard settings.controlEnabled, capabilities.forceDischarge, capabilities.reset,
@@ -267,6 +288,11 @@ import OSLog
     sleeping = true
     revision += 1
     executor.invalidate()
+    if capabilities.adapterControl == true {
+      cancelCalibrationState(interrupted: true)
+      dischargeTarget = nil
+      needsReset = true
+    }
     do {
       try history.flush(force: true)
       try store.saveCalibration(calibration)

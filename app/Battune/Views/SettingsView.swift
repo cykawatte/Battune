@@ -40,6 +40,9 @@ struct SettingsView: View {
         DiagnosticsView(coordinator: coordinator, settings: settings).tabItem {
           Label(localized("diagnostics"), systemImage: "stethoscope")
         }.tag(5)
+        SetupView(settings: settings, coordinator: coordinator).tabItem {
+          Label(localized("setup"), systemImage: "checkmark.shield")
+        }.tag(6)
       }.padding(12)
       Divider()
       HStack {
@@ -51,7 +54,9 @@ struct SettingsView: View {
           .buttonStyle(
             .borderedProminent)
       }.padding(16)
-    }.frame(minWidth: 620, minHeight: 540).onAppear { selected = initialTab }
+    }.frame(minWidth: 620, minHeight: 540).onAppear {
+      selected = initialTab == 5 ? 5 : (settings.value.setupComplete == true ? initialTab : 6)
+    }
   }
   private var general: some View {
     Form {

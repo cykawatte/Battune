@@ -32,6 +32,8 @@ public struct ChargeSchedule: Codable, Equatable, Identifiable, Sendable {
   }
 }
 public struct AppSettings: Codable, Equatable, Sendable {
+  public var advancedControl: Bool?
+  public var setupComplete: Bool?
   public var schema = 1
   public var onboardingComplete = false
   public var controlEnabled = false

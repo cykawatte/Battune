@@ -11,9 +11,17 @@ launch. Native limits remain configured on battery power and during sleep.
 Schedules change the native upper limit while the app runs. Custom sailing,
 thermal thresholds and forced discharge are not applied in native mode.
 
-The legacy policy below is implemented and mock-tested only. Battery health
-features provided by macOS remain
-under the operating system's control.
+The advanced adapter backend implements the policy below through CHIE, gated by
+administrator installation and an explicit hardware off/on validation. Physical
+validation remains pending. macOS battery-health protections remain active.
+
+Adapter mode cuts wall input during holds, adding battery cycles. Unless custom
+sailing is set, it uses a five-point band (20% limit uses a one-point band).
+The physical AC-W sensor distinguishes a connected cable from disabled adapter
+input. The native limit is released to 100% while advanced operations run, with
+journaled restoration. Stabilization explicitly keeps AC input enabled at 100%.
+Sleep restores AC input and revokes advanced validation; this software limit is
+not enforced during sleep. Calibration interrupts and requires an explicit restart.
 
 ## Priority
 
@@ -84,3 +92,9 @@ and 12/minute refill; identical confirmed operations are free. Reset retains a
 recovery path. A 120-second lease requests reset if an active controller disappears.
 A killed helper cannot execute a timer: independent firmware/readback validation
 is still a prerequisite for enabling any real backend.
+
+Adapter recovery also has a five-second watchdog while ownership remains. It
+restores at <=15% reserve, missing temperature, >=50°C or physical disconnect.
+These independent emergency limits override the policy and revoke validation.
+Failed restoration remains journaled and is retried. A successful restore changes
+a generation counter so UI/helper command caches cannot hide later writes.

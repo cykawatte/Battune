@@ -10,6 +10,12 @@ public final class HelperService: NSObject, BattuneHelperProtocol {
     self.backend = backend
     self.gate = gate
   }
+  public func validateAdapterControl(reply: @escaping (Int) -> Void) {
+    do {
+      try gate.validateAdapter()
+      reply(0)
+    } catch { reply((error as? BattuneError ?? .hardwareError).rawValue) }
+  }
   public func renewControlLease(reply: @escaping (Int) -> Void) {
     do {
       try gate.renewLease()
@@ -17,7 +23,11 @@ public final class HelperService: NSObject, BattuneHelperProtocol {
     } catch { reply(BattuneError.hardwareError.rawValue) }
   }
   public func getStatus(reply: @escaping (Data?, Int) -> Void) {
-    respond(HelperStatus(backend: backend.name, capabilities: backend.capabilities()), reply: reply)
+    respond(
+      HelperStatus(
+        backend: backend.name, capabilities: backend.capabilities(),
+        controlGeneration: backend.generation,
+        hardwareDiagnostic: (backend as? AdapterBackend)?.diagnostic), reply: reply)
   }
   public func getBatterySnapshot(reply: @escaping (Data?, Int) -> Void) {
     respond(backend.readBatterySnapshot(), reply: reply)
@@ -63,9 +73,12 @@ public final class HelperListener: NSObject, NSXPCListenerDelegate {
   }
   public static func run() {
     let delegate = HelperListener()
+    let sleep = HelperSleepGuard(adapter: delegate.backend as? AdapterBackend)
+    try? (delegate.backend as? AdapterBackend)?.recover()
+    sleep.start()
     let listener = NSXPCListener(machServiceName: HelperIdentity.machService)
     listener.delegate = delegate
     listener.resume()
-    withExtendedLifetime(delegate) { RunLoop.current.run() }
+    withExtendedLifetime((delegate, sleep)) { RunLoop.current.run() }
   }
 }

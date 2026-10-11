@@ -91,3 +91,14 @@ bundling under CLT; its deprecation warning in Swift 6.4 is known. Adopt the new
 SwiftPM build engine after testing bundle-resource behavior on full Xcode and CLT.
 
 See ADRs 0001–0006 for alternatives and consequences.
+
+## Advanced adapter mode (2026-10-11)
+
+The arm64 factory now selects AdapterBackend. Its sole write is CHIE, reached by
+an independently implemented fixed AppleSMC C bridge. Root safety restoration,
+sleep registration and a watchdog live in the helper; charge/discharge/calibration
+policy stays in the existing Rust/Swift coordinator. Physical cable detection is
+separate from adapter-input state. Capabilities unlock after explicit validation.
+Local development installs exact signature pins with an administrator-approved
+package. See FEATURE_PERMISSIONS.md and SECURITY_MODEL.md for current boundaries;
+earlier references to all legacy backends being read-only are superseded.

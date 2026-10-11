@@ -117,3 +117,25 @@ A failed write must show an error and must never show an active limit.
 Mac16,12, UI writes at 80% and 85% were independently read back from the macOS
 service; quitting restored 100%. No administrator privileges were used. This
 validates real platform settings, not a complete physical AC charge cycle.
+
+## Advanced-feature follow-up (2026-10-11)
+
+Added nine Swift cases: validation preconditions, rollback, adapter composition
+and crash recovery, reserve/sleep recovery, gate generation invalidation,
+full coordinator arbitrary-limit/discharge/calibration workflow, backend switching,
+exact-hash trust syntax and history CSV/backward-compatible preferences.
+Totals: 15 Rust + 37 Swift tests. All hardware writes in these tests use test-only
+transports; the live system test reads only.
+
+German Setup, Diagnostics and Statistics inspected in the native app. Live
+capacity/temperature/voltage/current/power displayed. CSV was saved using the
+actual NSSavePanel and parsed. Administrator prompts and physical adapter writes
+must not be counted until explicitly approved and executed.
+
+Final universal Release built and opened on arm64. Installer payload matches the
+embedded helper byte for byte; both architecture-specific app/helper CDHashes
+match the manifest and satisfy their code requirements using codesign. The local
+pkgbuild emits four `write: Permission denied` metadata warnings yet returns
+success; expanded payload, root ownership/modes, scripts and signatures were
+inspected. Actual installer execution remains an explicit approval/validation gate.
+The CLT x86_64 compatibility archive and native-build deprecation warnings remain.

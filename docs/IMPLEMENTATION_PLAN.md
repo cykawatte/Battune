@@ -9,7 +9,7 @@
 7. Exercise mock failures, integration, Debug/Release builds; document hardware boundaries.
 8. Add CI, local packaging and an honest final engineering report.
 
-No remote publication, privileged installation or hardware writes during development.
+Initial scope below is historical. User subsequently requested native and advanced hardware control. Native setting writes were verified; advanced root installation and adapter writes await explicit approval. No remote publication.
 
 ## Discovery (2026-10-09)
 

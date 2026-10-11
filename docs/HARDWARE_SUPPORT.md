@@ -4,7 +4,7 @@ Do not equate compilation, simulation and physical charging validation.
 
 | Architecture | Device | macOS | Battery read | Charge limit | Forced discharge | Temperature | Test status |
 |---|---|---|---|---|---|---|---|
-| arm64 | Mac16,12 | 27.0.1 (26A434) | Percentage, AC/charging state and cycle count observed | Native 80/85/90/95/100% | Unsupported | macOS-managed | Real native writes, readback and restoration tested; full AC charge cycle pending |
+| arm64 | Mac16,12 | 27.0.1 (26A434) | Percentage, cycles, mAh capacities, voltage/current/power observed | Native 80/85/90/95/100% | Implemented in adapter mode; privileged test pending | TB0T read observed | Real native writes, readback and restoration tested; full AC charge cycle pending |
 | arm64 | Other models | 13+ | Capability detection implemented | Native runtime probe; untested | Unsupported | Detected when available | Untested physical hardware |
 | x86_64 | Intel Macs | 13+ | Capability detection implemented | Native runtime probe; untested | Unsupported | Detected when available | Cross-build only; physical hardware untested |
 | Host | Test-only MockBackend | N/A | Simulated | Simulated | Simulated | Simulated | Automated controller, helper gate and integration tests |
@@ -14,15 +14,15 @@ limits are discovered through the macOS charge service. No root helper is needed
 Other Apple Silicon devices use the same capability probe, but have not been
 physically tested. Intel support is not claimed.
 
-The legacy AppleSiliconBackend and IntelBackend intentionally expose no write/reset
-capabilities. A historical SMC key or the existence of an AppleSMC service is not
-proof that writing it is safe or that reset is understood. There is no arbitrary
-key reader/writer in this version. Existing proprietary code was not used.
+The advanced arm64 helper now uses AdapterBackend and a fixed CHIE adapter gate.
+Capabilities require explicit successful hardware validation. Local root installation
+and physical CHIE writes are pending user approval. Intel remains read-only.
+[Exact read results and permission gates](FEATURE_PERMISSIONS.md).
 
-The tested host exposes CurrentCapacity=percentage, MaxCapacity=100 and CycleCount.
-Raw mAh capacity, design capacity and temperature are absent through the selected
-properties. The app correctly displays unknown rather than inventing health or
-mistaking 100% for 100 mAh.
+Actual mAh capacity is read from AppleRaw fields or nested BatteryData, never
+from percentage-valued MaxCapacity. Temperature is obtained from TB0T when the
+registry Temperature field is absent. Voltage, signed current and battery-side
+power were displayed and exported on the host.
 
 ## Adding a real backend
 

@@ -5,8 +5,18 @@ import ServiceManagement
 
 public protocol HardwareClient: AnyObject {
   func renewLease() async throws
+  func configureAdvanced(_ enabled: Bool) async throws
+  func validateAdvanced() async throws
+  func hardwareSnapshot() async throws -> BatterySnapshot?
   func status() async throws -> HelperStatus
   func perform(_ command: HardwareCommand) async throws
+}
+extension HardwareClient {
+  public func configureAdvanced(_ enabled: Bool) async throws {
+    if enabled { throw BattuneError.unsupported }
+  }
+  public func validateAdvanced() async throws { throw BattuneError.unsupported }
+  public func hardwareSnapshot() async throws -> BatterySnapshot? { nil }
 }
 /// One-shot completion gate protects against timeout/error/reply races.
 final class ReplyGate<T>: @unchecked Sendable {
@@ -39,14 +49,15 @@ public final class HelperClient: HardwareClient {
   private func request<T>(
     _ body: @escaping (BattuneHelperProtocol, @escaping (Result<T, Error>) -> Void) -> Void
   ) async throws -> T {
-    guard let team = SigningIdentity.teamIdentifier() else { throw BattuneError.unauthorized }
+    guard let requirement = LocalInstallationTrust.peerRequirement(forHelper: true) else {
+      throw BattuneError.unauthorized
+    }
     return try await withCheckedThrowingContinuation { continuation in
       let gate = ReplyGate(continuation)
       let connection = NSXPCConnection(
         machServiceName: HelperIdentity.machService, options: .privileged)
       connection.remoteObjectInterface = NSXPCInterface(with: BattuneHelperProtocol.self)
-      connection.setCodeSigningRequirement(
-        SigningIdentity.requirement(identifier: HelperIdentity.machService, team: team))
+      connection.setCodeSigningRequirement(requirement)
       connection.invalidationHandler = { gate.finish(.failure(BattuneError.helperUnavailable)) }
       connection.interruptionHandler = {
         gate.finish(.failure(BattuneError.helperUnavailable))
@@ -99,6 +110,20 @@ public final class HelperClient: HardwareClient {
       case .charging(let enabled): proxy.setChargingEnabled(enabled, reply: reply)
       case .discharge(let enabled): proxy.setDischargeEnabled(enabled, reply: reply)
       case .reset: proxy.resetChargingState(reply: reply)
+      }
+    }
+  }
+  public func validateAdvanced() async throws {
+    try await request { proxy, finish in
+      proxy.validateAdapterControl { code in
+        finish(code == 0 ? .success(()) : .failure(BattuneError(rawValue: code) ?? .hardwareError))
+      }
+    }
+  }
+  public func hardwareSnapshot() async throws -> BatterySnapshot? {
+    try await request { proxy, finish in
+      proxy.getBatterySnapshot { data, code in
+        finish(Result { try HelperReply.decode(BatterySnapshot.self, data: data, code: code) })
       }
     }
   }

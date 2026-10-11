@@ -176,16 +176,29 @@ public final class NativeChargeClient: HardwareClient {
   }
 }
 
-/// Select once. Never silently change controller after it has accepted a write.
+/// Controller transitions are explicit and restore the previous controller first.
 public actor PlatformHardwareClient: HardwareClient {
   private let native: HardwareClient
   private let helper: HardwareClient
   private var selected: HardwareClient?
+  private var advanced = false
   public init(
     native: HardwareClient = NativeChargeClient(), helper: HardwareClient = HelperClient()
   ) {
     self.native = native
     self.helper = helper
+  }
+  public func configureAdvanced(_ enabled: Bool) async throws {
+    guard enabled != advanced else { return }
+    if let selected { try await selected.perform(.reset) }
+    if advanced { try await native.perform(.reset) }
+    advanced = enabled
+    selected = enabled ? helper : native
+  }
+  public func validateAdvanced() async throws { try await helper.validateAdvanced() }
+  public func hardwareSnapshot() async throws -> BatterySnapshot? {
+    guard advanced else { return nil }
+    return try await helper.hardwareSnapshot()
   }
   public func status() async throws -> HelperStatus {
     if let selected { return try await selected.status() }
@@ -201,7 +214,16 @@ public actor PlatformHardwareClient: HardwareClient {
   }
   public func perform(_ command: HardwareCommand) async throws {
     guard let selected else { throw BattuneError.helperUnavailable }
+    if advanced, command != .reset {
+      // Native limits must not prevent the recharge phase. Preserve them in the
+      // native ownership journal and restore when leaving advanced mode.
+      do { try await native.perform(.limit(100)) } catch BattuneError.unsupported {
+        // Older macOS versions have no native limit to release. Permission,
+        // corruption and communication errors still abort the transition.
+      }
+    }
     try await selected.perform(command)
+    if advanced, command == .reset { try await native.perform(.reset) }
   }
   public func renewLease() async throws {
     guard let selected else { throw BattuneError.helperUnavailable }

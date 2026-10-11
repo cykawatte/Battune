@@ -11,11 +11,27 @@ struct DiagnosticsView: View {
   @ViewState private var helperOperationError = false
   @ViewState private var helperOperationBusy = false
   @ViewState private var confirmReset = false
+  @ViewState private var probes: [SMCProbe] = []
+  @ViewState private var rootStatus: HelperStatus?
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
       ScrollView {
-        Text(report).font(.system(.caption, design: .monospaced)).textSelection(.enabled).frame(
-          maxWidth: .infinity, alignment: .leading)
+        VStack(alignment: .leading, spacing: 14) {
+          Text(localized("diagnostics_permissions")).font(.callout)
+          Text(localized("diagnostics_entitlement")).font(.caption).foregroundStyle(.secondary)
+          ForEach(probes) { probe in
+            VStack(alignment: .leading, spacing: 2) {
+              Text("\(probe.key) · \(probe.result)").font(.system(.caption, design: .monospaced))
+              Text(
+                localized(
+                  probe.readable
+                    ? "probe_readable"
+                    : probe.ioResult == 0xe000_02c1 ? "probe_privileged" : "probe_absent")
+              ).font(.caption).foregroundStyle(.secondary)
+            }
+          }
+          Text(report).font(.system(.caption, design: .monospaced)).textSelection(.enabled)
+        }.frame(maxWidth: .infinity, alignment: .leading)
       }
       Text(
         localized(
@@ -28,7 +44,11 @@ struct DiagnosticsView: View {
           NSPasteboard.general.clearContents()
           NSPasteboard.general.setString(report, forType: .string)
         }
-        Button(localized("refresh")) { coordinator.retry() }
+        Button(localized("refresh")) {
+          coordinator.retry()
+          Task { await scan() }
+        }
+        Button(localized("export_diagnostics")) { export() }
       }
       if coordinator.capabilities.nativeChargeLimits == nil {
         HStack {
@@ -49,7 +69,9 @@ struct DiagnosticsView: View {
               helperOperationBusy = false
               coordinator.retry()
             }
-          }.disabled(settings.value.controlEnabled || helperOperationBusy)
+          }.disabled(
+            settings.value.controlEnabled || helperOperationBusy
+              || SigningIdentity.teamIdentifier() == nil)
           Button(localized("login_settings")) { SMAppService.openSystemSettingsLoginItems() }
         }
       }
@@ -58,7 +80,7 @@ struct DiagnosticsView: View {
       #if DEBUG
         Text(localized("developer_mode")).font(.caption).foregroundStyle(.secondary)
       #endif
-    }.padding(16)
+    }.padding(16).task { await scan() }
       .alert(localized("reset_control"), isPresented: $confirmReset) {
         Button(localized("cancel"), role: .cancel) {}
         Button(localized("reset_control")) {
@@ -71,6 +93,20 @@ struct DiagnosticsView: View {
       } message: {
         Text(localized("reset_explanation"))
       }
+  }
+  private func scan() async {
+    probes = await Task.detached { SMCProbe.all() }.value
+    rootStatus = try? await HelperClient().status()
+  }
+  private func export() {
+    let panel = NSSavePanel()
+    panel.nameFieldStringValue = "Battune-diagnostics.txt"
+    panel.begin { response in
+      guard response == .OK, let url = panel.url else { return }
+      do { try report.write(to: url, atomically: true, encoding: .utf8) } catch {
+        helperOperationError = true
+      }
+    }
   }
   private var report: String {
     #if arch(arm64)
@@ -88,7 +124,7 @@ struct DiagnosticsView: View {
       Helper error: \(coordinator.helperError.map { String(describing: $0) } ?? "none")
       Backend: \(coordinator.helper?.backend ?? "local IOKit read-only")
       Read battery: \(c.readBattery)
-      Read temperature: \(c.readTemperature)
+      Temperature sensor available: \(coordinator.snapshot.temperature != nil)
       Set limit: \(c.setLimit)
       Native supported limits: \(c.nativeChargeLimits?.map(String.init).joined(separator: ", ") ?? "none")
       Confirmed native limit: \(coordinator.helper?.confirmedLimit.map(String.init) ?? "unknown")
@@ -102,6 +138,13 @@ struct DiagnosticsView: View {
       Last confirmed action: \(coordinator.executor.lastAction.map { String(describing: $0) } ?? "none")
       Last error: \(coordinator.lastError.map { String(describing: $0) } ?? "none")
       Missing safety sensor: \(coordinator.sensorMissing)
+      Local helper trust: \(LocalInstallationTrust.peerRequirement(forHelper: true) != nil)
+      Advanced mode requested: \(settings.value.advancedControl == true)
+      Adapter control: \(c.adapterControl == true)
+      Root helper: \(rootStatus?.backend ?? "not connected")
+      Root hardware result: \(rootStatus?.hardwareDiagnostic ?? "not tested")
+      SMC read-only probe:
+      \(probes.map { "\($0.key): \($0.result)" }.joined(separator: "\n"))
       Telemetry: none
       """
   }

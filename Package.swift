@@ -20,7 +20,7 @@ let package = Package(
   targets: [
     .systemLibrary(name: "CBattuneCore", path: "shared/FFI"),
     .target(name: "CNativeCharge", path: "shared/NativeCharge",
-      publicHeadersPath: "include", linkerSettings: [.linkedFramework("Foundation")]),
+      publicHeadersPath: "include", linkerSettings: [.linkedFramework("Foundation"), .linkedFramework("IOKit")]),
     .target(
       name: "BattuneDomain", dependencies: ["CBattuneCore"], path: "app/Battune",
       exclude: ["Services", "Views", "App", "Localization"],
@@ -34,7 +34,7 @@ let package = Package(
       name: "BattuneSystem", dependencies: ["BattuneDomain", "BattuneShared", "CNativeCharge"],
       path: "app/Battune/Services"),
     .target(
-      name: "BattuneHardware", dependencies: ["BattuneDomain", "BattuneShared", "BattuneSystem"],
+      name: "BattuneHardware", dependencies: ["BattuneDomain", "BattuneShared", "BattuneSystem", "CNativeCharge"],
       path: "helper/BattuneHelper", exclude: ["main.swift"],
       sources: ["Security", "Hardware", "XPC"]),
     .executableTarget(
