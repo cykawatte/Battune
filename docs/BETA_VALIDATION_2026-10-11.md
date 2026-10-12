@@ -31,7 +31,21 @@ unavailability, explicit workflows, cancellation, sleep interruption and return
 from non-native limits. Package verification checks both architectures, signatures,
 identity pins, icons, installation paths, recovery scripts and SHA-256 checksums.
 
-A physical overnight standby run remains unverified. Apple can occasionally
+## Physical sleep check and next-day observation
+
+The user explicitly selected Sleep on 2026-10-11. `pmset` records AC power at 80%
+when entering Software Sleep at 17:59:49, a short DarkWake, Maintenance Sleep
+from 18:00:06 to 18:04:10 (244 seconds), then user wake still on AC at 80%.
+This confirms a real short sleep/wake cycle without an observed increase in charge.
+Simply closing the lid previously did not trigger sleep in this docked setup
+(`AppleClamshellCausesSleep=No`); that was not counted as a sleep test.
+
+On 2026-10-12 at 18:49 Europe/Berlin, independent IOKit/pmset reads again show
+AC connected, 80%, not charging and 0 mA battery current. This next-day snapshot
+is not a continuous 24-hour measurement. No later sleep cycle appears in the
+inspected power log; a physical overnight standby run remains unverified.
+
+ Apple can occasionally
 exceed its native charge limit for gauge calibration:
 https://support.apple.com/en-us/102338 . Non-native adapter limits still consume
 battery during holds and do not apply while asleep. Direct-charge entitlement
