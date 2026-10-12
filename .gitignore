@@ -17,3 +17,16 @@ build/
 dist/
 node_modules/
 target/
+
+# Native development
+.build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.p12
+*.p8
+*.mobileprovision
+*.log
+*.pem
+*.key
+*.pfx

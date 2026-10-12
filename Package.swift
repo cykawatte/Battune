@@ -1,0 +1,54 @@
+// swift-tools-version: 5.9
+// swift-format-ignore-file
+import Foundation
+import PackageDescription
+
+let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().path
+#if arch(arm64)
+let hostArchitecture = "arm64"
+#else
+let hostArchitecture = "x86_64"
+#endif
+let arch = ProcessInfo.processInfo.environment["BATTUNE_ARCH"] ?? hostArchitecture
+let configuration = ProcessInfo.processInfo.environment["BATTUNE_CONFIGURATION"] ?? "debug"
+let package = Package(
+  name: "Battune", defaultLocalization: "en", platforms: [.macOS(.v13)],
+  products: [
+    .executable(name: "Battune", targets: ["Battune"]),
+    .executable(name: "BattuneHelper", targets: ["BattuneHelper"]),
+  ],
+  targets: [
+    .systemLibrary(name: "CBattuneCore", path: "shared/FFI"),
+    .target(name: "CNativeCharge", path: "shared/NativeCharge",
+      publicHeadersPath: "include", linkerSettings: [.linkedFramework("Foundation"), .linkedFramework("IOKit")]),
+    .target(
+      name: "BattuneDomain", dependencies: ["CBattuneCore"], path: "app/Battune",
+      exclude: ["Services", "Views", "App", "Localization"],
+      sources: ["Models", "Persistence", "Statistics", "Scheduling"],
+      linkerSettings: [
+        .unsafeFlags(["-L\(root)/build/rust/\(arch)/\(configuration)"]),
+        .linkedLibrary("battune_core"),
+      ]),
+    .target(name: "BattuneShared", dependencies: ["BattuneDomain"], path: "shared/XPCProtocol"),
+    .target(
+      name: "BattuneSystem", dependencies: ["BattuneDomain", "BattuneShared", "CNativeCharge"],
+      path: "app/Battune/Services"),
+    .target(
+      name: "BattuneHardware", dependencies: ["BattuneDomain", "BattuneShared", "BattuneSystem", "CNativeCharge"],
+      path: "helper/BattuneHelper", exclude: ["main.swift"],
+      sources: ["Security", "Hardware", "XPC"]),
+    .executableTarget(
+      name: "BattuneHelper", dependencies: ["BattuneHardware"], path: "helper/BattuneHelper",
+      exclude: ["Security", "Hardware", "XPC"], sources: ["main.swift"]),
+    .executableTarget(
+      name: "Battune", dependencies: ["BattuneDomain", "BattuneSystem", "BattuneShared"],
+      path: "app/Battune",
+      exclude: ["Models", "Persistence", "Statistics", "Scheduling", "Services"],
+      sources: ["App", "Views"], resources: [.process("Localization")]),
+    .executableTarget(
+      name: "BattuneTests",
+      dependencies: [
+        "BattuneDomain", "BattuneSystem", "BattuneHardware", "BattuneShared", "CBattuneCore",
+      ], path: "tests/BattuneTests"),
+  ]
+)
