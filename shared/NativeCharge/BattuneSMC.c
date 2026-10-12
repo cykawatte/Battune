@@ -1,4 +1,5 @@
 #include "BattuneSMC.h"
+#include <CoreFoundation/CoreFoundation.h>
 #include <IOKit/IOKitLib.h>
 #include <stddef.h>
 #include <string.h>
@@ -56,9 +57,22 @@ BTKeyProbe bt_smc_probe(int key) {
     if (!value.io_result) { value = probe(connection, key); IOServiceClose(connection); }
     return value;
 }
+int bt_clamshell_closed(void) {
+    io_service_t root = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPMrootDomain"));
+    if (!root) return -1;
+    CFTypeRef value = IORegistryEntryCreateCFProperty(root, CFSTR("AppleClamshellState"), kCFAllocatorDefault, 0);
+    IOObjectRelease(root);
+    int result = -1;
+    if (value && CFGetTypeID(value) == CFBooleanGetTypeID()) result = CFBooleanGetValue((CFBooleanRef)value) ? 1 : 0;
+    if (value) CFRelease(value);
+    return result;
+}
 uint32_t bt_smc_adapter(int enabled) {
     if (geteuid() != 0) return kIOReturnNotPrivileged;
     if (enabled != 0 && enabled != 1) return kIOReturnBadArgument;
+    // Cutting AC can immediately suspend a docked Mac with its lid closed.
+    // Check again at the write boundary; restoring AC is always allowed.
+    if (!enabled && bt_clamshell_closed() != 0) return kIOReturnNotPermitted;
     io_connect_t connection = 0;
     kern_return_t result = connect_smc(&connection);
     if (result) return result;

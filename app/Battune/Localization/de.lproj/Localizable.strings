@@ -119,7 +119,7 @@
 "setup_native" = "Native Ladegrenze";
 "setup_native_detail" = "Für unterstützte Grenzen wie 80 % nutzt Battune automatisch die macOS-Regelung, auch wenn der erweiterte Modus freigeschaltet ist. Der Netzteileingang bleibt aktiv und die Grenze wird vor Standby nicht aufgehoben. Apple kann sie gelegentlich zur Messwertkalibrierung überschreiten.";
 "setup_advanced" = "Erweiterte Hardwaresteuerung";
-"setup_advanced_detail" = "Der Helper schaltet Entladeziel, Kalibrierung und zusätzliche Grenzen frei. Unterstützte macOS-Grenzen verwenden weiterhin den Netzbetrieb. Nur für Entladen, Kalibrierung oder andere Grenzen schaltet Battune den Netzteileingang über CHIE. Diese zusätzlichen Grenzen nutzen Batterie während Ladepausen und gelten nicht im Standby.";
+"setup_advanced_detail" = "Der Helper schaltet Entladeziel, Kalibrierung und zusätzliche Grenzen frei. Unterstützte macOS-Grenzen verwenden weiterhin den Netzbetrieb. Nur für Entladen, Kalibrierung oder andere Grenzen schaltet Battune den Netzteileingang über CHIE. Diese zusätzlichen Grenzen nutzen Batterie während Ladepausen und benötigen einen geöffneten Deckel. Im Standby gilt nur die nächsthöhere unterstützte native Grenze, sofern verfügbar.";
 "setup_restrictions" = "Die Administratorfreigabe erlaubt den Root-Helper. Apple kann einzelne SMC-Zugriffe trotzdem sperren; private Apple-Berechtigungen lassen sich nicht per Dialog erteilen. Erst ein erfolgreicher Schalttest schaltet die Funktionen frei.";
 "install_helper" = "Helper installieren …";
 "open_installer" = "Installation öffnen";
@@ -127,7 +127,7 @@
 "installer_missing" = "Das passende BattuneHelper.pkg muss neben Battune.app liegen. Erzeuge es nach dem App-Build mit scripts/build-helper-installer.sh.";
 "helper_setup_missing" = "Helper noch nicht installiert, nicht erreichbar oder Signatur passt nicht zu diesem Build.";
 "test_adapter" = "Hardwarezugriff prüfen …";
-"adapter_test_consent" = "Dieser Test schaltet den Netzteileingang kurz aus und direkt wieder ein und liest beide Zustände zurück. Netzteil anschließen; mindestens 30 % Ladung und unter 40 °C sind erforderlich. Nach Schlafmodus, Helper-Neustart oder einer Sicherheitsunterbrechung ist der Test erneut nötig.";
+"adapter_test_consent" = "Dieser Test schaltet den Netzteileingang kurz aus und direkt wieder ein und liest beide Zustände zurück. Mac aufklappen und Netzteil anschließen; mindestens 30 % Ladung und unter 40 °C sind erforderlich. Nach Schlafmodus, Helper-Neustart oder einer Sicherheitsunterbrechung ist der Test erneut nötig.";
 "approve_test" = "Schalttest erlauben";
 "use_advanced" = "Erweiterten Modus verwenden";
 "adapter_ready" = "Hardwarezugriff geprüft. Erweiterter Modus kann aktiviert werden.";
@@ -175,4 +175,9 @@
 "choose_installer_detail" = "Wähle das passende Beta- oder Helper-Paket aus deinem GitHub-Download. Es muss zu dieser App-Version gehören.";
 
 "automatic_limit_routing" = "80, 85, 90, 95 und 100 % verwenden auf unterstützten Macs die native Regelung mit aktivem Netzteil. Andere Grenzen benötigen den Adaptermodus und gelten nur im Wachzustand.";
-"adapter_limit_warning" = "Adaptermodus: Ladepausen verbrauchen Batterie. Diese Grenze gilt nicht im Standby. Für Netzbetrieb und Standby eine unterstützte native Grenze wählen.";
+"adapter_limit_warning" = "Adaptermodus: Deckel geöffnet lassen. Ladepausen verbrauchen Batterie. Im Standby gilt nur die nächsthöhere native Grenze, sofern verfügbar. Für durchgehenden Netzbetrieb eine native Grenze wählen.";
+
+"error.11" = "Deckel geschlossen: Der Adaptermodus würde den Netzbetrieb am externen Bildschirm unterbrechen. Für diese Ladegrenze den Mac öffnen; anschließend unter Einrichtung den Hardwarezugriff prüfen.";
+"error.12" = "Deckelzustand nicht lesbar. Der Netzteileingang bleibt zum Schutz des laufenden Betriebs eingeschaltet. Diagnose aktualisieren oder eine native Ladegrenze wählen.";
+"error.13" = "Adaptermodus muss geprüft werden: Mac öffnen und unter Einstellungen → Einrichtung → Netzteileingang testen erneut freigeben. Nach Ruhezustand oder Helper-Neustart ist dieser Test nötig.";
+"retained_native_limit" = "Weiterhin bestätigte macOS-Ladegrenze";

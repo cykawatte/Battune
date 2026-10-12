@@ -90,6 +90,9 @@ struct SetupView: View {
       helperReady = value.capabilities.adapterControl == true && value.capabilities.canControl
       statusMessage = [value.backend, value.hardwareDiagnostic].compactMap { $0 }.joined(
         separator: "\n")
+      if let block = value.capabilities.controlBlock {
+        statusMessage = localized("error.\(block.rawValue)") + "\n" + statusMessage
+      }
       if let error = coordinator.lastError {
         statusMessage += "\n" + localized("error.\(error.rawValue)")
       }

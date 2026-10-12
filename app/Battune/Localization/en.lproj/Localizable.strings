@@ -127,7 +127,7 @@
 "installer_missing" = "The matching BattuneHelper.pkg must be next to Battune.app. Generate it after building the app with scripts/build-helper-installer.sh.";
 "helper_setup_missing" = "Helper not installed, unavailable, or signature does not match this build.";
 "test_adapter" = "Test hardware access…";
-"adapter_test_consent" = "This test briefly disables the adapter input, immediately restores it, and reads back both states. Connect power; at least 30% charge and a temperature below 40°C are required. Repeat after sleep, helper restart or a safety interruption.";
+"adapter_test_consent" = "This test briefly switches adapter input off and back on and verifies both states. Open the lid and connect power; at least 30% charge and below 40 °C are required. Repeat after sleep, helper restart or a safety interruption."; at least 30% charge and a temperature below 40°C are required. Repeat after sleep, helper restart or a safety interruption.";
 "approve_test" = "Approve switching test";
 "use_advanced" = "Use advanced mode";
 "adapter_ready" = "Hardware access verified. Advanced mode can be enabled.";
@@ -175,4 +175,9 @@
 "choose_installer_detail" = "Choose the matching beta or helper package from your GitHub download. It must belong to this app version.";
 
 "automatic_limit_routing" = "80, 85, 90, 95 and 100% use native control with adapter input enabled on supported Macs. Other limits require adapter mode and only apply while awake.";
-"adapter_limit_warning" = "Adapter mode: holds consume battery. This limit does not apply during sleep. Choose a supported native limit for wall power and sleep.";
+"adapter_limit_warning" = "Adapter mode: keep the lid open. Holds consume battery. During sleep only the next supported native ceiling applies, if available. Choose a native limit for continuous AC operation.";
+
+"error.11" = "Lid closed: adapter mode would interrupt external-display operation. Open the Mac for this charge limit, then validate hardware access under Setup.";
+"error.12" = "Cannot read lid state. Adapter input remains enabled to protect the current session. Refresh diagnostics or choose a native charge limit.";
+"error.13" = "Adapter validation required: open the Mac and use Settings → Setup → Test adapter input. Repeat this test after sleep or a helper restart.";
+"retained_native_limit" = "Still-confirmed macOS charge limit";

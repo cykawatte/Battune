@@ -7,4 +7,6 @@ const char *bt_smc_key_name(int key);
 BTKeyProbe bt_smc_probe(int key);
 // Root-only, fixed adapter operation; validates metadata, value and readback.
 uint32_t bt_smc_adapter(int enabled);
+// 0 = open, 1 = closed, -1 = unavailable. Read-only IORegistry query.
+int bt_clamshell_closed(void);
 #endif

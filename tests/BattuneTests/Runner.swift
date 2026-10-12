@@ -40,6 +40,11 @@ enum TestFailure: Error { case missingValue }
     let adapter = AdapterTests()
     let tests: [(String, () async throws -> Void)] = [
       ("Adapter validation and preconditions", { try adapter.testValidation() }),
+      ("Closed or unreadable lid never cuts AC", { try adapter.testClosedLidNeverCutsPower() }),
+      (
+        "Blocked adapter switch preserves native ceiling",
+        { try await native.testRejectedAdapterSwitchPreservesNativeCeiling() }
+      ),
       ("Adapter failure rollback", { try adapter.testRollback() }),
       ("Adapter composition and crash recovery", { try adapter.testCompositionAndRecovery() }),
       ("Adapter reserve and sleep recovery", { try adapter.testSafetyAndSleep() }),

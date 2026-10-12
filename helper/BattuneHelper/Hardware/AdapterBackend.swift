@@ -8,6 +8,7 @@ import IOKit.pwr_mgt
 public protocol AdapterTransport: AnyObject {
   var privileged: Bool { get }
   var diagnostic: String? { get }
+  var lidClosed: Bool? { get }
   func isEnabled() throws -> Bool
   func setEnabled(_ enabled: Bool) throws
   func snapshot() -> BatterySnapshot
@@ -29,6 +30,13 @@ public final class SMCAdapterTransport: AdapterTransport {
   }
   public init() {}
   public var privileged: Bool { geteuid() == 0 }
+  public var lidClosed: Bool? {
+    switch bt_clamshell_closed() {
+    case 0: return false
+    case 1: return true
+    default: return nil
+    }
+  }
   public func isEnabled() throws -> Bool {
     let key = SMCProbe.read(1)
     guard key.readable, key.size == 1, let byte = key.bytes.first, byte == 0 || byte == 8 else {
@@ -67,7 +75,15 @@ public final class AdapterBackend: BatteryHardwareBackend {
   }
   private var revision: UInt64 = 0
   private var lastFailure: String?
-  public var diagnostic: String? { lock.withLock { lastFailure ?? transport.diagnostic } }
+  public var diagnostic: String? {
+    lock.withLock {
+      [
+        lastFailure, "Lid closed: \(transport.lidClosed.map(String.init) ?? "unknown")",
+        "Adapter validation: \(validated)", transport.diagnostic,
+      ]
+      .compactMap { $0 }.joined(separator: "\n")
+    }
+  }
   public var generation: UInt64 { lock.withLock { revision } }
   private let transport: AdapterTransport
   private let journal: URL
@@ -91,18 +107,33 @@ public final class AdapterBackend: BatteryHardwareBackend {
   public func capabilities() -> Capabilities {
     lock.withLock {
       let snapshot = transport.snapshot()
-      let ready = validated && transport.privileged && (try? transport.isEnabled()) != nil
+      let block = controlBlock
+      let ready = block == nil && (try? transport.isEnabled()) != nil
       return Capabilities(
         readBattery: snapshot.percentage != nil,
         readTemperature: snapshot.temperature != nil, toggleCharging: ready,
-        forceDischarge: ready, reset: transport.privileged, adapterControl: true)
+        forceDischarge: ready, reset: transport.privileged, adapterControl: true,
+        controlBlock: block)
     }
+  }
+  private var controlBlock: BattuneError? {
+    guard transport.privileged else { return .unauthorized }
+    guard let closed = transport.lidClosed else { return .lidStateUnknown }
+    guard !closed else { return .lidClosed }
+    guard validated else { return .adapterValidationRequired }
+    return nil
+  }
+  private func requireOpenLid() throws {
+    guard let closed = transport.lidClosed else { throw BattuneError.lidStateUnknown }
+    guard !closed else { throw BattuneError.lidClosed }
   }
   /// Explicit, short off/on roundtrip, reachable only through authenticated XPC.
   public func validate() throws {
     try lock.withLock {
       guard transport.privileged else { throw BattuneError.unauthorized }
       guard sleepProtectionReady else { throw BattuneError.hardwareError }
+      try recover()
+      try requireOpenLid()
       let battery = transport.snapshot()
       guard battery.pluggedIn == true, let percentage = battery.percentage, percentage >= 30,
         let temperature = battery.temperature, temperature < 40
@@ -139,6 +170,10 @@ public final class AdapterBackend: BatteryHardwareBackend {
       }
       let enabled = chargingAllowed && !discharge
       if !enabled {
+        do { try requireOpenLid() } catch {
+          try recover()
+          throw error
+        }
         let snapshot = transport.snapshot()
         guard snapshot.pluggedIn == true, let percentage = snapshot.percentage, percentage > 15,
           let temperature = snapshot.temperature, temperature < 50
@@ -205,7 +240,8 @@ public final class AdapterBackend: BatteryHardwareBackend {
     lock.withLock {
       guard FileManager.default.fileExists(atPath: journal.path) else { return }
       let snapshot = transport.snapshot()
-      if !validated || snapshot.pluggedIn != true || (snapshot.percentage ?? 0) <= 15
+      if !validated || transport.lidClosed != false || snapshot.pluggedIn != true
+        || (snapshot.percentage ?? 0) <= 15
         || snapshot.temperature == nil || (snapshot.temperature ?? 100) >= 50
       {
         validated = false

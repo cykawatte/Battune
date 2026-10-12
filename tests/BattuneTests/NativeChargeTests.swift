@@ -213,7 +213,7 @@ final class FakeNativeTransport: NativeChargeTransport {
     coordinator.updateSettings(settings)
     await settle(coordinator)
     expectTrue(coordinator.capabilities.adapterControl == true)
-    expectEqual(fake.state.limit, 100)
+    expectEqual(fake.state.limit, 80)
     settings.charge.limit = 80
     coordinator.updateSettings(settings)
     await settle(coordinator)
@@ -238,6 +238,42 @@ final class FakeNativeTransport: NativeChargeTransport {
     } catch { expectEqual(error as? BattuneError, .hardwareError) }
     try await Task.sleep(nanoseconds: 250_000_000)
     expectTrue(fake.writes.isEmpty)
+  }
+  func testRejectedAdapterSwitchPreservesNativeCeiling() async throws {
+    let (fake, url, session) = fixture()
+    defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+    let helper = MockBackend()
+    helper.supported.adapterControl = true
+    let router = PlatformHardwareClient(
+      native: NativeChargeClient(session: session), helper: helper)
+    try await router.configureControl(advanced: true, limit: 80, workflow: false)
+    try await router.perform(.limit(80))
+    for reason: BattuneError in [.lidClosed, .lidStateUnknown, .adapterValidationRequired] {
+      helper.supported.controlBlock = reason
+      do {
+        try await router.configureControl(advanced: true, limit: 69, workflow: false)
+        expectTrue(false)
+      } catch { expectEqual(error as? BattuneError, reason) }
+      expectEqual(fake.state.limit, 80)
+      expectEqual(fake.writes, [80])
+      expectEqual(try await router.status().confirmedLimit, 80)
+      expectTrue(helper.commands.isEmpty)
+    }
+    helper.supported.controlBlock = nil
+    try await router.configureControl(advanced: true, limit: 69, workflow: false)
+    try await router.perform(.charging(false))
+    expectEqual(fake.state.limit, 80)
+    expectEqual(helper.commands, [.charging(false)])
+    // Lid can close after routing but before the command; check readiness again.
+    helper.supported.controlBlock = .lidClosed
+    do {
+      try await router.perform(.discharge(true))
+      expectTrue(false)
+    } catch { expectEqual(error as? BattuneError, .lidClosed) }
+    expectEqual(helper.commands, [.charging(false)])
+    try await router.perform(.reset)
+    expectEqual(helper.commands.last, .reset)
+    expectEqual(fake.state.limit, 90)
   }
   private func settle(_ coordinator: ChargeCoordinator) async {
     for _ in 0..<500 {

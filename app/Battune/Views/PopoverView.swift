@@ -29,9 +29,17 @@ struct PopoverView: View {
       }
       Text(localized(coordinator.mode.localizationKey)).font(.headline)
       if !coordinator.capabilities.canControl {
-        Label(localized("control_unavailable"), systemImage: "info.circle").font(.caption)
+        Label(
+          localized(
+            coordinator.helperError.map { "error.\($0.rawValue)" } ?? "control_unavailable"),
+          systemImage: "info.circle"
+        ).font(.caption)
           .foregroundStyle(
             .secondary)
+      }
+      if let limit = coordinator.fallbackNativeLimit {
+        Text("\(localized("retained_native_limit")): \(limit)%")
+          .font(.caption).foregroundStyle(.secondary)
       }
       if coordinator.capabilities.adapterControl == true {
         Text(localized("adapter_limit_warning")).font(.caption).foregroundStyle(.orange)

@@ -184,6 +184,7 @@ public actor PlatformHardwareClient: HardwareClient {
   private var selected: HardwareClient?
   private var usingHelper = false
   private var advanced = false
+  private var adapterNativeCeiling = 100
   private var routingGeneration: UInt64 = 0
   public init(
     native: HardwareClient = NativeChargeClient(), helper: HardwareClient = HelperClient()
@@ -194,21 +195,33 @@ public actor PlatformHardwareClient: HardwareClient {
   public func configureControl(advanced: Bool, limit: Int, workflow: Bool) async throws {
     self.advanced = advanced
     var nativeSupportsLimit = false
+    var nativeLimits: [Int] = []
     do {
-      nativeSupportsLimit =
-        try await native.status().capabilities.nativeChargeLimits?.contains(limit) == true
+      nativeLimits = try await native.status().capabilities.nativeChargeLimits ?? []
+      nativeSupportsLimit = nativeLimits.contains(limit)
     } catch BattuneError.unsupported {
       // A missing native API is different from a failed/corrupt native session.
     }
+    // Retain the nearest native ceiling during ordinary adapter charging, including
+    // sleep. Only explicit calibration/discharge workflows need an unrestricted ceiling.
+    adapterNativeCeiling = workflow ? 100 : nativeLimits.filter { $0 >= limit }.min() ?? 100
     try await selectHelper(advanced && (workflow || !nativeSupportsLimit))
   }
   public func configureAdvanced(_ enabled: Bool) async throws {
     advanced = enabled
+    adapterNativeCeiling = 100
     try await selectHelper(enabled)
   }
   private func selectHelper(_ enabled: Bool) async throws {
+    // Preflight before restoring the working native limit. A closed lid, missing
+    // helper or revoked validation must never silently lift an existing ceiling.
+    if enabled {
+      let caps = try await helper.status().capabilities
+      if let block = caps.controlBlock { throw block }
+      guard caps.canControl else { throw BattuneError.adapterValidationRequired }
+    }
     guard selected == nil || enabled != usingHelper else { return }
-    if let selected { try await selected.perform(.reset) }
+    if let selected, !enabled { try await selected.perform(.reset) }
     // Restore any native limit temporarily lifted for an adapter workflow.
     if usingHelper { try await native.perform(.reset) }
     usingHelper = enabled
@@ -241,9 +254,11 @@ public actor PlatformHardwareClient: HardwareClient {
   public func perform(_ command: HardwareCommand) async throws {
     guard let selected else { throw BattuneError.helperUnavailable }
     if usingHelper, command != .reset {
-      // Explicit discharge/calibration and non-native limits may need unrestricted
-      // recharging. This path cannot enforce a charge ceiling during sleep.
-      do { try await native.perform(.limit(100)) } catch BattuneError.unsupported {}
+      let caps = try await helper.status().capabilities
+      if let block = caps.controlBlock { throw block }
+      guard caps.canControl else { throw BattuneError.adapterValidationRequired }
+      do { try await native.perform(.limit(adapterNativeCeiling)) } catch BattuneError.unsupported {
+      }
     }
     try await selected.perform(command)
     if usingHelper, command == .reset { try await native.perform(.reset) }

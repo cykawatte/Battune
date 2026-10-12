@@ -39,10 +39,12 @@ public struct Capabilities: Codable, Equatable, Sendable {
   public var nativeChargeLimits: [Int]?
   public var adapterControl: Bool?
   public var workflowControl: Bool?
+  public var controlBlock: BattuneError?
   public init(
     readBattery: Bool = false, readTemperature: Bool = false, setLimit: Bool = false,
     toggleCharging: Bool = false, forceDischarge: Bool = false, reset: Bool = false,
-    nativeChargeLimits: [Int]? = nil, adapterControl: Bool? = nil, workflowControl: Bool? = nil
+    nativeChargeLimits: [Int]? = nil, adapterControl: Bool? = nil, workflowControl: Bool? = nil,
+    controlBlock: BattuneError? = nil
   ) {
     self.readBattery = readBattery
     self.readTemperature = readTemperature
@@ -53,6 +55,7 @@ public struct Capabilities: Codable, Equatable, Sendable {
     self.nativeChargeLimits = nativeChargeLimits
     self.adapterControl = adapterControl
     self.workflowControl = workflowControl
+    self.controlBlock = controlBlock
   }
   public var mask: Int32 {
     (setLimit ? 1 : 0) | (toggleCharging ? 2 : 0) | (forceDischarge ? 4 : 0) | (reset ? 8 : 0)
@@ -66,6 +69,7 @@ public enum BattuneError: Int, Error, Codable, Sendable {
   case invalidConfiguration = 1
   case invalidSnapshot, unsupported, notImplemented, hardwareError, helperUnavailable, unauthorized,
     rateLimited, corruptPersistence, protocolMismatch
+  case lidClosed, lidStateUnknown, adapterValidationRequired
 }
 public enum HardwareCommand: Equatable, Sendable {
   case limit(Int)

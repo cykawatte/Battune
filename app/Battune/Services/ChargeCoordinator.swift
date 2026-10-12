@@ -8,6 +8,7 @@ import OSLog
   @Published public private(set) var capabilities = Capabilities()
   @Published public private(set) var helper: HelperStatus?
   @Published public private(set) var helperError: BattuneError?
+  @Published public private(set) var fallbackNativeLimit: Int?
   @Published public private(set) var mode = ControlMode.system
   @Published public private(set) var lastError: BattuneError?
   @Published public private(set) var calibration = CalibrationSession()
@@ -85,7 +86,8 @@ import OSLog
       ? settings.charge.limit : (schedule?.settings.limit ?? settings.charge.limit)
     do {
       try await client.configureControl(
-        advanced: settings.advancedControl == true, limit: requestedLimit,
+        advanced: settings.controlEnabled && settings.advancedControl == true,
+        limit: requestedLimit,
         workflow: calibration.active || dischargeTarget != nil)
       let status = try await client.status()
       guard status.version == "0.1.0-beta.1" else { throw BattuneError.protocolMismatch }
@@ -94,6 +96,7 @@ import OSLog
         executor.invalidate()
       }
       helper = status
+      fallbackNativeLimit = nil
       capabilities = status.capabilities
       helperError = nil
       if let hardware = try await client.hardwareSnapshot() { snapshot = hardware }
@@ -102,6 +105,13 @@ import OSLog
       helperError = error as? BattuneError ?? .helperUnavailable
       capabilities = Capabilities(
         readBattery: snapshot.percentage != nil, readTemperature: snapshot.temperature != nil)
+      // Read back the controller that remains selected after a rejected switch.
+      // This is an actual confirmed ceiling, not the requested slider value.
+      fallbackNativeLimit = nil
+      if let retained = try? await client.status(), retained.capabilities.nativeChargeLimits != nil
+      {
+        fallbackNativeLimit = retained.confirmedLimit
+      }
       executor.invalidate()
       if calibration.active || dischargeTarget != nil {
         cancelCalibrationState(interrupted: true)
@@ -331,7 +341,7 @@ import OSLog
       if !busy { break }
       try? await Task.sleep(nanoseconds: 100_000_000)
     }
-    if capabilities.reset {
+    if capabilities.reset || fallbackNativeLimit != nil {
       do { try await client.perform(.reset) } catch { logger.error("Reset on exit failed") }
     }
     do { try history.flush(force: true) } catch { logger.error("History flush failed") }

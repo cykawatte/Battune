@@ -141,6 +141,8 @@ struct DiagnosticsView: View {
       Local helper trust: \(LocalInstallationTrust.peerRequirement(forHelper: true) != nil)
       Advanced mode requested: \(settings.value.advancedControl == true)
       Adapter control: \(c.adapterControl == true)
+      Control blocked: \(coordinator.helperError.map { localized("error.\($0.rawValue)") } ?? "none")
+      Retained native limit: \(coordinator.fallbackNativeLimit.map(String.init) ?? "none")
       Root helper: \(rootStatus?.backend ?? "not connected")
       Root hardware result: \(rootStatus?.hardwareDiagnostic ?? "not tested")
       SMC read-only probe:

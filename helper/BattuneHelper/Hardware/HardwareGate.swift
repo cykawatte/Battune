@@ -41,6 +41,7 @@ public final class HardwareGate {
       generation = backend.generation
     }
     let caps = backend.capabilities()
+    if command != .reset, let block = caps.controlBlock { throw block }
     let key: String
     switch command {
     case .limit(let percent):

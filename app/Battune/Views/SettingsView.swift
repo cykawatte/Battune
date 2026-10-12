@@ -36,7 +36,7 @@ struct SettingsView: View {
       }.padding(12)
       Divider()
       HStack {
-        if let error = settings.error ?? coordinator.lastError {
+        if let error = settings.error ?? coordinator.lastError ?? coordinator.helperError {
           Text(localized("error.\(error.rawValue)")).foregroundStyle(.red).font(.caption)
         }
         Spacer()
