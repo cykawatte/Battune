@@ -1,5 +1,10 @@
 import Foundation
 
+public enum BattuneVersion {
+  /// App, helper and XPC protocol version. A mismatch disables helper features.
+  public static let current = "0.2.0-beta.1"
+}
+
 public struct BatterySnapshot: Codable, Equatable, Sendable {
   public var percentage: Int?
   public var pluggedIn: Bool?
@@ -16,6 +21,12 @@ public struct BatterySnapshot: Codable, Equatable, Sendable {
   public var current: Double?
   public var power: Double?
   public var adapterWatts: Int?
+  /// Whole-system consumption and adapter input in watts (power telemetry).
+  public var systemLoad: Double?
+  public var adapterInput: Double?
+  /// macOS or core estimates in minutes; nil when unknown or not applicable.
+  public var minutesToFull: Int?
+  public var minutesToEmpty: Int?
   public var timestamp: Date
   public init(
     percentage: Int? = nil, pluggedIn: Bool? = nil, charging: Bool? = nil,
@@ -39,10 +50,16 @@ public struct Capabilities: Codable, Equatable, Sendable {
   public var nativeChargeLimits: [Int]?
   public var adapterControl: Bool?
   public var workflowControl: Bool?
+  public var controlBlock: BattuneError?
+  /// Helper-provided accessories that never touch charging.
+  public var indicatorControl: Bool?
+  public var powerModeControl: Bool?
   public init(
     readBattery: Bool = false, readTemperature: Bool = false, setLimit: Bool = false,
     toggleCharging: Bool = false, forceDischarge: Bool = false, reset: Bool = false,
-    nativeChargeLimits: [Int]? = nil, adapterControl: Bool? = nil, workflowControl: Bool? = nil
+    nativeChargeLimits: [Int]? = nil, adapterControl: Bool? = nil, workflowControl: Bool? = nil,
+    controlBlock: BattuneError? = nil, indicatorControl: Bool? = nil,
+    powerModeControl: Bool? = nil
   ) {
     self.readBattery = readBattery
     self.readTemperature = readTemperature
@@ -53,6 +70,9 @@ public struct Capabilities: Codable, Equatable, Sendable {
     self.nativeChargeLimits = nativeChargeLimits
     self.adapterControl = adapterControl
     self.workflowControl = workflowControl
+    self.controlBlock = controlBlock
+    self.indicatorControl = indicatorControl
+    self.powerModeControl = powerModeControl
   }
   public var mask: Int32 {
     (setLimit ? 1 : 0) | (toggleCharging ? 2 : 0) | (forceDischarge ? 4 : 0) | (reset ? 8 : 0)
@@ -66,6 +86,7 @@ public enum BattuneError: Int, Error, Codable, Sendable {
   case invalidConfiguration = 1
   case invalidSnapshot, unsupported, notImplemented, hardwareError, helperUnavailable, unauthorized,
     rateLimited, corruptPersistence, protocolMismatch
+  case lidClosed, lidStateUnknown, adapterValidationRequired
 }
 public enum HardwareCommand: Equatable, Sendable {
   case limit(Int)
@@ -81,7 +102,7 @@ public struct HelperStatus: Codable, Sendable {
   public let controlGeneration: UInt64?
   public let hardwareDiagnostic: String?
   public init(
-    version: String = "0.1.0-beta.1", backend: String, capabilities: Capabilities,
+    version: String = BattuneVersion.current, backend: String, capabilities: Capabilities,
     confirmedLimit: Int? = nil, controlGeneration: UInt64? = nil, hardwareDiagnostic: String? = nil
   ) {
     self.version = version

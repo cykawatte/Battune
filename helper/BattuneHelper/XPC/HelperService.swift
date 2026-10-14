@@ -25,7 +25,7 @@ public final class HelperService: NSObject, BattuneHelperProtocol {
   public func getStatus(reply: @escaping (Data?, Int) -> Void) {
     respond(
       HelperStatus(
-        backend: backend.name, capabilities: backend.capabilities(),
+        backend: backend.name, capabilities: gate.capabilities(),
         controlGeneration: backend.generation,
         hardwareDiagnostic: (backend as? AdapterBackend)?.diagnostic), reply: reply)
   }
@@ -53,6 +53,18 @@ public final class HelperService: NSObject, BattuneHelperProtocol {
     perform(.discharge(enabled), reply: reply)
   }
   public func resetChargingState(reply: @escaping (Int) -> Void) { perform(.reset, reply: reply) }
+  public func setIndicator(_ value: Int, reply: @escaping (Int) -> Void) {
+    do {
+      try gate.setIndicator(value)
+      reply(0)
+    } catch { reply((error as? BattuneError ?? .hardwareError).rawValue) }
+  }
+  public func setLowPowerMode(battery: Bool, charger: Bool, reply: @escaping (Int) -> Void) {
+    do {
+      try gate.setLowPowerMode(battery: battery, charger: charger)
+      reply(0)
+    } catch { reply((error as? BattuneError ?? .hardwareError).rawValue) }
+  }
 }
 public final class HelperListener: NSObject, NSXPCListenerDelegate {
   private let backend = BackendFactory.make()

@@ -7,7 +7,7 @@ import Foundation
 
 @MainActor final class DomainTests {
   func testABIAndChargeBoundaries() throws {
-    expectEqual(battune_abi_version(), 1)
+    expectEqual(battune_abi_version(), 2)
     expectEqual(MemoryLayout<BattuneInput>.size, 52)
     expectEqual(MemoryLayout<BattuneOutput>.size, 40)
     expectEqual(MemoryLayout<BattuneCalibration>.size, 64)

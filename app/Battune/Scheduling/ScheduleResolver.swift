@@ -43,6 +43,32 @@ public enum ScheduleResolver {
     }
     return nil
   }
+  /// Earliest enabled activation strictly after `date`, within the next week.
+  public static func nextActivation(
+    _ schedules: [ChargeSchedule], after date: Date, calendar: Calendar = .current
+  ) -> Date? {
+    var best: Date?
+    for entry in schedules where entry.enabled {
+      for daysAhead in 0...7 {
+        guard
+          let day = calendar.date(
+            byAdding: .day, value: daysAhead, to: calendar.startOfDay(for: date))
+        else { continue }
+        let weekday = (calendar.component(.weekday, from: day) + 5) % 7
+        guard entry.days & (1 << weekday) != 0 else { continue }
+        let components = DateComponents(
+          hour: entry.minute / 60, minute: entry.minute % 60, second: 0)
+        guard
+          let activation = calendar.nextDate(
+            after: day.addingTimeInterval(-1), matching: components, matchingPolicy: .nextTime,
+            repeatedTimePolicy: .first), activation > date
+        else { continue }
+        if best.map({ activation < $0 }) ?? true { best = activation }
+        break
+      }
+    }
+    return best
+  }
   public static func activationToken(
     _ schedule: ChargeSchedule, at date: Date, calendar: Calendar = .current
   ) -> String {

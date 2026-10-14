@@ -2,7 +2,7 @@
 
 **Lightweight native battery charge control for macOS.** Tune your battery.
 
-Version **0.1.0-beta.1** · MIT · macOS 13+ · no telemetry · no network services
+Version **0.2.0-beta.1** · MIT · macOS 13+ · no telemetry · no network services
 
 Battune is a native menu-bar application with a deterministic Rust control engine
 and a separate, narrowly scoped privileged helper. It is an independent implementation.
@@ -18,15 +18,31 @@ an explicit off/on/readback test. That off/on/readback test and local helper ins
 
 ## Features
 
-- Native AppKit menu bar and SwiftUI settings in English and German.
+- Native AppKit menu bar and SwiftUI settings in English and German, with a
+  charge ring, power flow, native-step chips and one-click actions.
 - Real IOKit battery readings, explicit unknown values, event-driven updates and sleep/wake handling.
-- Real native charge limits with runtime detection of supported values.
+- Real native charge limits with runtime detection of supported values; optionally kept after quitting.
+- **Top Up** (100% until unplugged) and **Pause** (hold the current level).
 - Advanced 20–100% adapter control, sailing, thermal protection and fail-safe recovery.
+  Blocked adapter mode falls back to the nearest native ceiling instead of leaving the battery unprotected.
 - Explicit discharge and cancellable calibration workflows, gated by backend capabilities.
-- Weekly schedules with local timezone and daylight-saving handling.
-- Live temperature/voltage/current/power/capacity, bounded history, 24h/7d/30d charts, CSV and diagnostic exports.
+- Weekly schedules with templates, local timezone and daylight-saving handling.
+- Power flow (adapter → Mac → battery), time to limit / remaining, live temperature,
+  voltage, current, capacity; bounded history, 24h/7d/30d charts, CSV and diagnostic exports.
+- MagSafe LED control and Low Power Mode profiles (helper required).
+- `battune://limit/80`, `battune://top-up`, `battune://pause`, `battune://resume` for Shortcuts.
 - Validated preferences, launch at login, onboarding and reset/recovery UI.
 - XPC authentication, argument validation, write deduplication, rate limits and expiring control leases.
+
+### Compared with AlDente Pro
+
+See [the 0.2 analysis](docs/PRO_PARITY_2026-10-14.md). In short: Battune covers
+charge limit, sailing, heat protection, discharge, calibration, top up, pause,
+schedules, power flow, MagSafe LED, Low Power Mode and automation – open source,
+without telemetry, licence checks or update pings. On Macs where macOS only
+offers native limits (80–100%), AlDente's own interface text says its native
+method does not support lower limits; Battune offers them in adapter mode with
+closed-lid protection and a native 80% fallback.
 
 The native write/restore path has been tested on the local Mac. Advanced workflows and adapter failures have been exercised against a **test-only transport**; real privileged adapter off/on/readback and restoration are also verified locally.
 Unsupported real operations are displayed as unsupported, never reported as successful.

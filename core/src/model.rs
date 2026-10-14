@@ -66,6 +66,8 @@ pub enum Mode {
     Discharging = 4,
     Calibration = 5,
     Unavailable = 6,
+    /// Produced by the platform layer when macOS enforces the limit itself.
+    NativeLimit = 7,
 }
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Desired {

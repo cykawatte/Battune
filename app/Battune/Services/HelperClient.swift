@@ -11,8 +11,15 @@ public protocol HardwareClient: AnyObject {
   func hardwareSnapshot() async throws -> BatterySnapshot?
   func status() async throws -> HelperStatus
   func perform(_ command: HardwareCommand) async throws
+  /// Accessories never change charging; they require the approved helper.
+  func setIndicator(_ value: Int) async throws
+  func setLowPowerMode(battery: Bool, charger: Bool) async throws
 }
 extension HardwareClient {
+  public func setIndicator(_ value: Int) async throws { throw BattuneError.unsupported }
+  public func setLowPowerMode(battery: Bool, charger: Bool) async throws {
+    throw BattuneError.unsupported
+  }
   public func configureControl(advanced: Bool, limit: Int, workflow: Bool) async throws {
     try await configureAdvanced(advanced)
   }
@@ -114,6 +121,20 @@ public final class HelperClient: HardwareClient {
       case .charging(let enabled): proxy.setChargingEnabled(enabled, reply: reply)
       case .discharge(let enabled): proxy.setDischargeEnabled(enabled, reply: reply)
       case .reset: proxy.resetChargingState(reply: reply)
+      }
+    }
+  }
+  public func setIndicator(_ value: Int) async throws {
+    try await request { proxy, finish in
+      proxy.setIndicator(value) { code in
+        finish(code == 0 ? .success(()) : .failure(BattuneError(rawValue: code) ?? .hardwareError))
+      }
+    }
+  }
+  public func setLowPowerMode(battery: Bool, charger: Bool) async throws {
+    try await request { proxy, finish in
+      proxy.setLowPowerMode(battery: battery, charger: charger) { code in
+        finish(code == 0 ? .success(()) : .failure(BattuneError(rawValue: code) ?? .hardwareError))
       }
     }
   }

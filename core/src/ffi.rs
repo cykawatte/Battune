@@ -1,8 +1,9 @@
-//! ABI v1: POD values, no owned pointers or callbacks. Unknown integers are -1;
+//! ABI v2: POD values, no owned pointers or callbacks. Unknown integers are -1;
 //! unknown temperatures are i32::MIN. All externally supplied flags are validated.
 use crate::{
     calibration::{Calibration, Phase},
     controller::evaluate,
+    insights::{self, EstimateInput, IndicatorStyle, Override},
     model::*,
     schedule::{self, Occurrence},
 };
@@ -62,7 +63,7 @@ fn error(e: Error) -> i32 {
 }
 #[no_mangle]
 pub extern "C" fn battune_abi_version() -> u32 {
-    1
+    2
 }
 #[no_mangle]
 pub extern "C" fn battune_evaluate(i: Input) -> Output {
@@ -235,6 +236,153 @@ pub unsafe extern "C" fn battune_schedule(entries: *const ScheduleValue, count: 
         Err(_) => -2,
     }
 }
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug)]
+pub struct OverrideValue {
+    pub configured: i32,
+    pub kind: i32,
+    pub paused_at: i32,
+    pub plugged: i32,
+    pub limit: i32,
+    pub complete: i32,
+    pub error: i32,
+}
+#[no_mangle]
+pub extern "C" fn battune_override(mut v: OverrideValue) -> OverrideValue {
+    let run = || -> Result<insights::Resolution, Error> {
+        let plugged = if v.plugged == -1 {
+            None
+        } else {
+            Some(flag(v.plugged)?)
+        };
+        insights::resolve(
+            u8::try_from(v.configured).map_err(|_| Error::InvalidConfiguration)?,
+            Override::from_raw(v.kind)?,
+            optional(v.paused_at)?,
+            plugged,
+        )
+    };
+    match run() {
+        Ok(r) => {
+            v.limit = i32::from(r.limit);
+            v.complete = i32::from(r.complete);
+            v.error = 0;
+        }
+        Err(e) => {
+            v.limit = -1;
+            v.complete = 0;
+            v.error = error(e);
+        }
+    }
+    v
+}
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug)]
+pub struct EstimateValue {
+    pub remaining: i32,
+    pub full: i32,
+    pub current: i32,
+    pub target: i32,
+    pub to_target: i32,
+    pub to_empty: i32,
+    pub error: i32,
+}
+/// Unknown capacities are -1; unknown current is i32::MIN. Results use -1 for none.
+#[no_mangle]
+pub extern "C" fn battune_estimate(mut v: EstimateValue) -> EstimateValue {
+    let capacity = |x: i32| -> Result<Option<u32>, Error> {
+        if x == -1 {
+            Ok(None)
+        } else {
+            u32::try_from(x)
+                .map(Some)
+                .map_err(|_| Error::InvalidSnapshot)
+        }
+    };
+    let run = || -> Result<insights::Estimate, Error> {
+        insights::estimate(EstimateInput {
+            remaining: capacity(v.remaining)?,
+            full: capacity(v.full)?,
+            current: (v.current != i32::MIN).then_some(v.current),
+            target: u8::try_from(v.target).map_err(|_| Error::InvalidConfiguration)?,
+        })
+    };
+    let minutes = |m: Option<u32>| m.and_then(|m| i32::try_from(m).ok()).unwrap_or(-1);
+    match run() {
+        Ok(e) => {
+            v.to_target = minutes(e.minutes_to_target);
+            v.to_empty = minutes(e.minutes_to_empty);
+            v.error = 0;
+        }
+        Err(e) => {
+            v.to_target = -1;
+            v.to_empty = -1;
+            v.error = error(e);
+        }
+    }
+    v
+}
+/// Returns the smallest supported native limit at or above the request,
+/// -1 if none exists and -2 for malformed input. At most 32 entries.
+/// # Safety
+/// For nonzero count, values must point to count initialized, aligned readable
+/// i32 elements for the duration of this call. No pointer is retained.
+#[no_mangle]
+pub unsafe extern "C" fn battune_native_ceiling(
+    requested: i32,
+    values: *const i32,
+    count: u32,
+) -> i32 {
+    if count > 32 || (count > 0 && values.is_null()) || !(20..=100).contains(&requested) {
+        return -2;
+    }
+    if count == 0 {
+        return -1;
+    }
+    // SAFETY: caller promises a valid aligned array; bounds and null checked above.
+    let input = unsafe { std::slice::from_raw_parts(values, count as usize) };
+    let mut supported = [0u8; 32];
+    for (slot, value) in supported.iter_mut().zip(input) {
+        match u8::try_from(*value) {
+            Ok(v) if (20..=100).contains(&v) => *slot = v,
+            _ => return -2,
+        }
+    }
+    insights::native_ceiling(requested as u8, &supported[..count as usize]).map_or(-1, i32::from)
+}
+/// MagSafe indicator value for a style and controller mode; -1 for invalid input.
+#[no_mangle]
+pub extern "C" fn battune_indicator(style: i32, mode: i32, plugged: i32, charging: i32) -> i32 {
+    let tri = |v: i32| -> Option<Option<bool>> {
+        match v {
+            -1 => Some(None),
+            0 => Some(Some(false)),
+            1 => Some(Some(true)),
+            _ => None,
+        }
+    };
+    let style = match style {
+        0 => IndicatorStyle::System,
+        1 => IndicatorStyle::Off,
+        2 => IndicatorStyle::ChargeState,
+        _ => return -1,
+    };
+    let mode = match mode {
+        0 => Mode::System,
+        1 => Mode::Charging,
+        2 => Mode::Holding,
+        3 => Mode::ThermalHold,
+        4 => Mode::Discharging,
+        5 => Mode::Calibration,
+        6 => Mode::Unavailable,
+        7 => Mode::NativeLimit,
+        _ => return -1,
+    };
+    match (tri(plugged), tri(charging)) {
+        (Some(p), Some(c)) => insights::indicator(style, mode, p, c) as i32,
+        _ => -1,
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -244,6 +392,55 @@ mod tests {
         assert_eq!(std::mem::size_of::<Output>(), 40);
         assert_eq!(std::mem::size_of::<CalibrationValue>(), 64);
         assert_eq!(std::mem::size_of::<ScheduleValue>(), 16);
+        assert_eq!(std::mem::size_of::<OverrideValue>(), 28);
+        assert_eq!(std::mem::size_of::<EstimateValue>(), 28);
+    }
+    #[test]
+    fn insight_entry_points_validate_input() {
+        let top_up = battune_override(OverrideValue {
+            configured: 80,
+            kind: 1,
+            paused_at: -1,
+            plugged: 1,
+            ..OverrideValue::default()
+        });
+        assert_eq!((top_up.error, top_up.limit, top_up.complete), (0, 100, 0));
+        let bad = battune_override(OverrideValue {
+            configured: 80,
+            kind: 9,
+            paused_at: -1,
+            plugged: 1,
+            ..OverrideValue::default()
+        });
+        assert_eq!((bad.error, bad.limit), (1, -1));
+        let e = battune_estimate(EstimateValue {
+            remaining: 2000,
+            full: 4000,
+            current: 2000,
+            target: 80,
+            ..EstimateValue::default()
+        });
+        assert_eq!((e.error, e.to_target, e.to_empty), (0, 36, -1));
+        let unknown = battune_estimate(EstimateValue {
+            remaining: -1,
+            full: -1,
+            current: i32::MIN,
+            target: 80,
+            ..EstimateValue::default()
+        });
+        assert_eq!((unknown.error, unknown.to_target), (0, -1));
+        assert_eq!(battune_indicator(2, 2, 1, 0), 3);
+        assert_eq!(battune_indicator(2, 8, 1, 0), -1);
+        assert_eq!(battune_indicator(3, 2, 1, 0), -1);
+        let supported = [80, 85, 90, 95, 100];
+        // SAFETY: valid local array and matching count.
+        unsafe {
+            assert_eq!(battune_native_ceiling(77, supported.as_ptr(), 5), 80);
+            assert_eq!(battune_native_ceiling(19, supported.as_ptr(), 5), -2);
+            assert_eq!(battune_native_ceiling(77, std::ptr::null(), 0), -1);
+            assert_eq!(battune_native_ceiling(77, std::ptr::null(), 1), -2);
+            assert_eq!(battune_native_ceiling(77, [10].as_ptr(), 1), -2);
+        }
     }
     #[test]
     fn reject_invalid_flags() {

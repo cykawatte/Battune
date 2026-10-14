@@ -38,8 +38,33 @@ enum TestFailure: Error { case missingValue }
     let xpc = XPCTests()
     let native = NativeChargeTests()
     let adapter = AdapterTests()
+    let pro = ProFeatureTests()
     let tests: [(String, () async throws -> Void)] = [
+      (
+        "Sub-80% limits with a closed lid (regression)",
+        { try await pro.testSubEightyLimitsWithClosedLid() }
+      ),
+      ("Top-up, pause and keep limit on quit", { try await pro.testTopUpPauseAndKeepLimit() }),
+      (
+        "Overrides require control",
+        { try await pro.testOverridesRequireControlAndEndWithWorkflows() }
+      ),
+      (
+        "MagSafe and Low Power Mode accessories",
+        { try await pro.testAccessoriesApplyOnceAndRestore() }
+      ),
+      ("Accessory gate validation and rate limit", { try pro.testAccessoryGate() }),
+      ("Rust insights bridge", { try pro.testCoreInsightsBridge() }),
+      (
+        "Next schedule wakeup and settings migration",
+        { try pro.testNextScheduleActivationAndSettingsMigration() }
+      ),
       ("Adapter validation and preconditions", { try adapter.testValidation() }),
+      ("Closed or unreadable lid never cuts AC", { try adapter.testClosedLidNeverCutsPower() }),
+      (
+        "Blocked adapter switch preserves native ceiling",
+        { try await native.testRejectedAdapterSwitchPreservesNativeCeiling() }
+      ),
       ("Adapter failure rollback", { try adapter.testRollback() }),
       ("Adapter composition and crash recovery", { try adapter.testCompositionAndRecovery() }),
       ("Adapter reserve and sleep recovery", { try adapter.testSafetyAndSleep() }),

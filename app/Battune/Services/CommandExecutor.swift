@@ -12,8 +12,10 @@ import Foundation
     generation += 1
     confirmed = [:]
   }
-  public func apply(_ commands: [HardwareCommand]) async throws {
+  /// Returns true when at least one command reached the hardware.
+  @discardableResult public func apply(_ commands: [HardwareCommand]) async throws -> Bool {
     let currentGeneration = generation
+    var wrote = false
     for command in commands {
       guard currentGeneration == generation else { throw CancellationError() }
       let key: String
@@ -28,6 +30,7 @@ import Foundation
         invalidate()
         throw error
       }
+      wrote = true
       guard currentGeneration == generation else { throw CancellationError() }
       if command == .reset {
         confirmed = ["reset": .reset]
@@ -37,5 +40,6 @@ import Foundation
       }
       lastAction = command
     }
+    return wrote
   }
 }

@@ -7,6 +7,7 @@ import Security
 
 private final class TestAdapter: AdapterTransport {
   var privileged = true
+  var lidClosed: Bool? = false
   var enabled = true
   var writes: [Bool] = []
   var failNext = false
@@ -80,6 +81,37 @@ private final class AdapterTestClient: HardwareClient, BatteryProviding {
       expectTrue(transport.enabled)
       expectFalse(backend.capabilities().canControl)
       expectFalse(FileManager.default.fileExists(atPath: journal.path))
+    }
+  }
+  func testClosedLidNeverCutsPower() throws {
+    try withAdapter { backend, transport, journal in
+      backend.setSleepProtectionReady(true)
+      for state: Bool? in [true, nil] {
+        transport.lidClosed = state
+        expectThrows(try backend.validate()) {
+          expectEqual($0 as? BattuneError, state == true ? .lidClosed : .lidStateUnknown)
+        }
+        expectTrue(transport.writes.isEmpty)
+        expectFalse(backend.capabilities().canControl)
+        expectFalse(FileManager.default.fileExists(atPath: journal.path))
+      }
+      transport.lidClosed = false
+      try backend.validate()
+      transport.writes = []
+      transport.lidClosed = true
+      expectThrows(try backend.perform(.charging(false))) {
+        expectEqual($0 as? BattuneError, .lidClosed)
+      }
+      expectTrue(transport.writes.isEmpty)
+      expectTrue(transport.enabled)
+      transport.lidClosed = false
+      try backend.perform(.charging(false))
+      transport.lidClosed = true
+      backend.safetyCheck()
+      expectTrue(transport.enabled)
+      expectFalse(FileManager.default.fileExists(atPath: journal.path))
+      transport.lidClosed = false
+      expectEqual(backend.capabilities().controlBlock, .adapterValidationRequired)
     }
   }
   func testCompositionAndRecovery() throws {
@@ -238,7 +270,7 @@ private final class AdapterTestClient: HardwareClient, BatteryProviding {
     _ = try await router.status()
     try await router.perform(.limit(80))
     try await router.configureAdvanced(true)
-    expectEqual(native.commands, [.limit(80), .reset])
+    expectEqual(native.commands, [.limit(80)])
     try await router.perform(.charging(false))
     expectEqual(native.commands.last, .limit(100))
     expectEqual(helper.commands.last, .charging(false))

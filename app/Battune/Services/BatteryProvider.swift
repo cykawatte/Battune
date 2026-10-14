@@ -27,6 +27,9 @@ public struct SystemBatteryProvider: BatteryProviding {
         result.pluggedIn = result.powerSource.map { $0 == kIOPSACPowerValue }
         result.charging = d[kIOPSIsChargingKey] as? Bool
         result.fullyCharged = d[kIOPSIsChargedKey] as? Bool
+        // -1 means "still calculating"; macOS omits the key when not applicable.
+        result.minutesToFull = (d[kIOPSTimeToFullChargeKey] as? Int).flatMap(Self.minutes)
+        result.minutesToEmpty = (d[kIOPSTimeToEmptyKey] as? Int).flatMap(Self.minutes)
         break
       }
     }
@@ -67,8 +70,17 @@ public struct SystemBatteryProvider: BatteryProviding {
     if let adapter = d["AdapterDetails"] as? [String: Any] {
       result.adapterWatts = nonnegative(adapter["Watts"])
     }
+    // Power telemetry is reported in mW on Apple Silicon. Values are absent on
+    // Intel and while the gauge restarts; never substitute an estimate for them.
+    if let telemetry = d["PowerTelemetryData"] as? [String: Any] {
+      result.systemLoad = nonnegative(telemetry["SystemLoad"]).map { Double($0) / 1000 }
+      if result.pluggedIn == true {
+        result.adapterInput = nonnegative(telemetry["SystemPowerIn"]).map { Double($0) / 1000 }
+      }
+    }
     return result
   }
+  static func minutes(_ value: Int) -> Int? { (0..<6000).contains(value) ? value : nil }
   private func nonnegative(_ value: Any?) -> Int? {
     guard let v = value as? Int, v >= 0 else { return nil }
     return v

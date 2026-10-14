@@ -31,6 +31,24 @@ public final class SettingsStore {
   public func saveCalibration(_ value: CalibrationSession) throws {
     defaults.set(try JSONEncoder().encode(value), forKey: "calibration.v1")
   }
+  public func loadOverride() -> ChargeOverride? {
+    guard let data = defaults.data(forKey: "override.v1") else { return nil }
+    // A corrupt override is dropped: the configured limit is always the safe default.
+    guard let value = try? JSONDecoder().decode(ChargeOverride.self, from: data),
+      value.pausedAt.map({ (0...100).contains($0) }) ?? true
+    else {
+      defaults.removeObject(forKey: "override.v1")
+      return nil
+    }
+    return value
+  }
+  public func saveOverride(_ value: ChargeOverride?) {
+    guard let value, let data = try? JSONEncoder().encode(value) else {
+      defaults.removeObject(forKey: "override.v1")
+      return
+    }
+    defaults.set(data, forKey: "override.v1")
+  }
   public var scheduleToken: String? {
     get { defaults.string(forKey: "schedule.activation") }
     set { if scheduleToken != newValue { defaults.set(newValue, forKey: "schedule.activation") } }
