@@ -24,7 +24,7 @@ public enum CoreBridge {
     state: ControlState, capabilities: Capabilities
   ) throws -> ControlPlan {
     try settings.validate()
-    guard battune_abi_version() == 1 else { throw BattuneError.protocolMismatch }
+    guard battune_abi_version() == 2 else { throw BattuneError.protocolMismatch }
     guard target.map({ (20...100).contains($0) }) ?? true,
       snapshot.percentage.map({ (0...100).contains($0) }) ?? true,
       snapshot.temperature.map({ $0.isFinite && (-20...100).contains($0) }) ?? true
@@ -59,6 +59,61 @@ public enum CoreBridge {
     return ControlPlan(
       mode: ControlMode(rawValue: output.mode) ?? .unavailable, state: next, commands: commands,
       dischargeComplete: output.discharge_complete == 1, sensorMissing: output.sensor_missing == 1)
+  }
+}
+extension CoreBridge {
+  /// Effective limit for an override; `complete` means the override has ended.
+  public static func resolve(
+    configured: Int, override value: ChargeOverride?, plugged: Bool?
+  ) throws -> (limit: Int, complete: Bool) {
+    guard battune_abi_version() == 2 else { throw BattuneError.protocolMismatch }
+    guard let value else { return (configured, false) }
+    let output = battune_override(
+      BattuneOverride(
+        configured: Int32(clamping: configured), kind: value.kind.rawValue,
+        paused_at: value.pausedAt.map { Int32(clamping: $0) } ?? -1,
+        plugged: plugged.map { $0 ? 1 : 0 } ?? -1, limit: 0, complete: 0, error: 0))
+    guard output.error == 0 else {
+      throw BattuneError(rawValue: Int(output.error)) ?? .protocolMismatch
+    }
+    return (Int(output.limit), output.complete == 1)
+  }
+  /// Smallest supported native limit at or above the request.
+  public static func nativeCeiling(_ requested: Int, supported: [Int]) -> Int? {
+    guard (20...100).contains(requested), supported.count <= 32 else { return nil }
+    let values = supported.map { Int32(clamping: $0) }
+    let result = values.withUnsafeBufferPointer {
+      battune_native_ceiling(Int32(requested), $0.baseAddress, UInt32($0.count))
+    }
+    return result >= 0 ? Int(result) : nil
+  }
+  /// Fills the time estimates macOS leaves unknown (65535) from capacity and current.
+  public static func estimate(_ snapshot: BatterySnapshot, target: Int) -> (
+    toTarget: Int?, toEmpty: Int?
+  ) {
+    let capacity = { (value: Int?) -> Int32 in
+      value.flatMap { Int32(exactly: $0) } ?? -1
+    }
+    let current = snapshot.current.flatMap { Int32(exactly: ($0 * 1000).rounded()) } ?? Int32.min
+    let output = battune_estimate(
+      BattuneEstimate(
+        remaining: capacity(snapshot.currentCapacity), full: capacity(snapshot.maximumCapacity),
+        current: current, target: Int32(clamping: min(100, max(1, target))), to_target: -1,
+        to_empty: -1, error: 0))
+    guard output.error == 0 else { return (nil, nil) }
+    return (
+      output.to_target >= 0 ? Int(output.to_target) : nil,
+      output.to_empty >= 0 ? Int(output.to_empty) : nil
+    )
+  }
+  /// MagSafe indicator value for the current state; nil for invalid input.
+  public static func indicator(
+    style: IndicatorStyle, mode: ControlMode, plugged: Bool?, charging: Bool?
+  ) -> Int? {
+    let value = battune_indicator(
+      Int32(style.rawValue), mode.rawValue, plugged.map { $0 ? 1 : 0 } ?? -1,
+      charging.map { $0 ? 1 : 0 } ?? -1)
+    return value >= 0 ? Int(value) : nil
   }
 }
 public struct CalibrationSession: Codable, Equatable, Sendable {

@@ -2,5 +2,6 @@
 pub mod calibration;
 pub mod controller;
 pub mod ffi;
+pub mod insights;
 pub mod model;
 pub mod schedule;
