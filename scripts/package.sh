@@ -18,6 +18,7 @@ cp "build/release/Battune-$version.pkg" "$folder/"
 cp build/release/BattuneHelper.pkg "$folder/"
 cp packaging/INSTALL.md "$folder/README.md"
 cp scripts/uninstall-local-helper.sh "$folder/Uninstall-Helper.sh"
+cp scripts/uninstall-battune.sh "$folder/Uninstall-Battune.sh"
 ditto -c -k --keepParent "$folder" "build/packages/Battune-$version.zip"
 cp "build/release/Battune-$version.pkg" build/packages/
 cp build/release/BattuneHelper.pkg "build/packages/BattuneHelper-$version.pkg"

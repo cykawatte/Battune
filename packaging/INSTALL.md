@@ -1,9 +1,9 @@
-# Battune 0.1.0-beta.1
+# Battune 0.2.0-beta.1
 
 ## Deutsch
 
 1. Falls Battune bereits läuft: über das Menüleistensymbol beenden.
-2. **Battune-0.1.0-beta.1.pkg** öffnen und die Administrator-Installation bestätigen.
+2. **Battune-0.2.0-beta.1.pkg** öffnen und die Administrator-Installation bestätigen.
    Das Paket installiert die App nach `/Applications/Battune.app` und den passenden Helper.
 3. Battune unter Programme öffnen. Das kurze Tutorial erklärt die Kernfunktionen.
 4. Für freie 20–100-%-Grenzen, Entladeziel und Kalibrierung: unter Einrichtung den
@@ -32,9 +32,30 @@ Entfernen: Steuerung deaktivieren, Battune normal beenden, dann optional
 und entfernt den Helper. Die App kann anschließend in den Papierkorb. Persönliche
 Einstellungen und Verlauf bleiben erhalten. Autostart vorher in Battune deaktivieren.
 
+### Update von 0.1 / Neuinstallation
+
+Der Helper aus 0.1 passt nicht zur App 0.2 (Protokoll und Codesignaturen). Immer das
+vollständige Paket installieren. Für eine saubere Neuinstallation: Battune beenden,
+`sudo bash Uninstall-Battune.sh` ausführen (entfernt App, Helper und Paketbelege,
+behält Einstellungen und Verlauf), dann das Paket installieren.
+
+### Hardware-Prüfliste 0.2
+
+1. Einrichtung → Helper-Status zeigt „0.2.0-beta.1“; Hardwaretest bestätigen (Deckel offen, Netzteil, ≥ 30 %, < 40 °C).
+2. Laden → Grenze 80 %: Popover zeigt „Gehalten · Betrieb über Netzteil“, Energiefluss Netzteil → Mac, Akku ≈ 0 W.
+3. Grenze 77 % (erweiterter Modus): Deckel offen → Adapter hält; Deckel mit externem Monitor schließen →
+   kein Sperrbildschirm, Netzteil sofort wieder aktiv, Popover zeigt „Geschützt durch macOS-Grenze (80 %)“.
+4. Voll laden → macOS-Grenze 100 %; Netzteil abziehen → Grenze springt zurück.
+5. Pause bei z. B. 83 % → macOS-Stufe 85 %; Fortsetzen → konfigurierte Grenze.
+6. Energie → MagSafe-LED „Ladezustand zeigen“: grün beim Halten, orange beim Laden; Beenden → macOS übernimmt.
+7. Energie → Stromsparmodus „Nur im Akkubetrieb“: `pmset -g custom` zeigt `lowpowermode 1` nur im Akkuprofil.
+8. Battune beenden → Grenze bleibt (Systemeinstellungen → Batterie), sofern „beibehalten“ aktiv ist.
+
 ## English
 
-Quit an existing Battune instance, open **Battune-0.1.0-beta.1.pkg**, approve the
+Upgrading from 0.1 requires the full package: the 0.1 helper does not match the
+0.2 app. For a clean reinstall run `sudo bash Uninstall-Battune.sh` first (keeps
+settings and history). Quit an existing Battune instance, open **Battune-0.2.0-beta.1.pkg**, approve the
 administrator installation, then launch Battune from Applications. The full package
 includes both app and matching helper. Follow the short first-run tour. Advanced
 20–100% limits, discharge and calibration require the explicit hardware test and
