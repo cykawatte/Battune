@@ -22,7 +22,12 @@ public struct SMCProbe: Codable, Identifiable, Sendable {
       ioResult: value.io_result, smcResult: value.smc_result, size: value.size,
       type: value.type, bytes: bytes)
   }
-  public static func all() -> [SMCProbe] { (0..<13).map(read) }
+  public static func all() -> [SMCProbe] { (0..<14).map(read) }
+  /// MagSafe indicator key: present, one byte, unsigned.
+  public static var indicatorAvailable: Bool {
+    let value = read(13)
+    return value.readable && value.size == 1 && value.type == 0x7569_3820
+  }
   public static var batteryTemperature: Double? {
     let value = read(10)
     guard value.readable, value.size == 4, value.type == 0x666c_7420 else { return nil }

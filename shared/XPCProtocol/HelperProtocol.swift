@@ -10,6 +10,10 @@ import Foundation
   func setChargingEnabled(_ enabled: Bool, reply: @escaping (Int) -> Void)
   func setDischargeEnabled(_ enabled: Bool, reply: @escaping (Int) -> Void)
   func resetChargingState(reply: @escaping (Int) -> Void)
+  /// MagSafe indicator: 0 system, 1 off, 3 green, 4 amber. Other values are rejected.
+  func setIndicator(_ value: Int, reply: @escaping (Int) -> Void)
+  /// Fixed pmset Low Power Mode profiles for battery and charger.
+  func setLowPowerMode(battery: Bool, charger: Bool, reply: @escaping (Int) -> Void)
 }
 public enum HelperIdentity {
   public static let machService = "org.battune.helper"

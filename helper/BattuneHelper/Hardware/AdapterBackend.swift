@@ -252,7 +252,9 @@ public final class AdapterBackend: BatteryHardwareBackend {
   private func startWatchdog() {
     guard watchdog == nil else { return }
     let timer = DispatchSource.makeTimerSource(queue: .global(qos: .utility))
-    timer.schedule(deadline: .now() + 5, repeating: 5, leeway: .seconds(1))
+    // Lid and power events trigger safetyCheck immediately; this fallback only
+    // covers slow reserve and temperature changes.
+    timer.schedule(deadline: .now() + 10, repeating: 10, leeway: .seconds(2))
     timer.setEventHandler { [weak self] in self?.safetyCheck() }
     watchdog = timer
     timer.resume()

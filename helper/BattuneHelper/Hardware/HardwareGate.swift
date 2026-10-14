@@ -6,6 +6,7 @@ import OSLog
 public final class HardwareGate {
   private let leaseDuration: TimeInterval
   private let backend: BatteryHardwareBackend
+  private let accessories: AccessoryTransport
   private let lock = NSLock()
   private var generation: UInt64 = 0
   private var lastRefill: TimeInterval = 0
@@ -14,8 +15,12 @@ public final class HardwareGate {
   private var leaseGeneration = 0
   private let logger = Logger(subsystem: "org.battune.helper", category: "Recovery")
   private var confirmed: [String: HardwareCommand] = [:]
-  public init(backend: BatteryHardwareBackend, leaseDuration: TimeInterval = 120) {
+  public init(
+    backend: BatteryHardwareBackend, accessories: AccessoryTransport = SystemAccessoryTransport(),
+    leaseDuration: TimeInterval = 120
+  ) {
     self.backend = backend
+    self.accessories = accessories
     self.leaseDuration = max(0.01, leaseDuration)
   }
   public func validateAdapter() throws {
@@ -29,6 +34,34 @@ public final class HardwareGate {
       lease?.cancel()
       lease = nil
       leaseGeneration += 1
+    }
+  }
+  /// Charge capabilities plus the accessory operations this root process can perform.
+  public func capabilities() -> Capabilities {
+    var caps = backend.capabilities()
+    caps.indicatorControl = accessories.privileged && accessories.indicatorAvailable
+    caps.powerModeControl = accessories.privileged
+    return caps
+  }
+  public func setIndicator(
+    _ value: Int, now: TimeInterval = ProcessInfo.processInfo.systemUptime
+  ) throws {
+    guard [0, 1, 3, 4].contains(value) else { throw BattuneError.invalidConfiguration }
+    try accessory(now: now) { try accessories.setIndicator(value) }
+  }
+  public func setLowPowerMode(
+    battery: Bool, charger: Bool, now: TimeInterval = ProcessInfo.processInfo.systemUptime
+  ) throws {
+    try accessory(now: now) { try accessories.setLowPowerMode(battery: battery, charger: charger) }
+  }
+  /// Accessories share the command budget, so they cannot be used to flood the SMC.
+  private func accessory(now: TimeInterval, _ body: () throws -> Void) throws {
+    try lock.withLock {
+      guard accessories.privileged else { throw BattuneError.unauthorized }
+      refill(now: now)
+      guard tokens >= 1 else { throw BattuneError.rateLimited }
+      tokens -= 1
+      try body()
     }
   }
   public func perform(
