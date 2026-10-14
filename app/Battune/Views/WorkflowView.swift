@@ -9,7 +9,10 @@ struct WorkflowView: View {
   var body: some View {
     Form {
       if !coordinator.capabilities.forceDischarge {
-        Text(localized("workflow_setup_required")).foregroundStyle(.secondary)
+        Section {
+          Label(localized("workflow_setup_required"), systemImage: "lock")
+            .foregroundStyle(.secondary)
+        }
       }
       Section(localized("discharge")) {
         Text(localized("discharge_explanation"))
@@ -19,7 +22,8 @@ struct WorkflowView: View {
             !coordinator.capabilities.forceDischarge || coordinator.calibration.active
               || coordinator.busy)
         if let target = coordinator.dischargeTarget {
-          Text("\(localized("target")): \(target)%")
+          Label("\(localized("target")): \(target)%", systemImage: "arrow.down.circle.fill")
+            .foregroundStyle(Palette.discharging)
           Button(localized("cancel_restore")) { coordinator.cancelWorkflow() }
         }
       }

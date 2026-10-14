@@ -9,8 +9,11 @@ xcrun clang -fobjc-arc -fblocks -Wall -Wextra -Werror -fsyntax-only \
   -I shared/NativeCharge/include shared/NativeCharge/NativeCharge.m
 xcrun clang -Wall -Wextra -Werror -fsyntax-only -I shared/NativeCharge/include shared/NativeCharge/BattuneSMC.c
 for script in scripts/*.sh; do bash -n "$script"; done
+# A malformed .strings file silently shows raw keys for that language.
+plutil -lint app/Battune/Localization/*.lproj/Localizable.strings
 plutil -lint packaging/Info.plist packaging/Helper-Info.plist packaging/org.battune.helper.plist Battune.xcodeproj/project.pbxproj
-if rg -n 'try!|as!|fatalError\(|TODO|FIXME' app helper shared core/src; then
+# grep is always available; ripgrep is optional on contributor machines.
+if grep -rnE 'try!|as!|fatalError\(|TODO|FIXME' app helper shared core/src; then
   echo 'Forbidden production pattern found' >&2; exit 1
 fi
 git diff --check

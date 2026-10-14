@@ -85,10 +85,7 @@ struct DiagnosticsView: View {
         Button(localized("cancel"), role: .cancel) {}
         Button(localized("reset_control")) {
           settings.value.controlEnabled = false
-          if settings.save() {
-            coordinator.updateSettings(settings.value)
-            coordinator.reset()
-          }
+          if settings.commit(to: coordinator) { coordinator.reset() }
         }
       } message: {
         Text(localized("reset_explanation"))
@@ -116,7 +113,7 @@ struct DiagnosticsView: View {
     #endif
     let c = coordinator.capabilities
     return """
-      Battune 0.1.0-beta.1
+      Battune \(BattuneVersion.current)
       macOS: \(ProcessInfo.processInfo.operatingSystemVersionString)
       Architecture: \(architecture)
       Controller: \(coordinator.helper?.version ?? "unavailable")
@@ -142,6 +139,13 @@ struct DiagnosticsView: View {
       Advanced mode requested: \(settings.value.advancedControl == true)
       Adapter control: \(c.adapterControl == true)
       Control blocked: \(coordinator.helperError.map { localized("error.\($0.rawValue)") } ?? "none")
+      Effective limit: \(coordinator.effectiveLimit.map(String.init) ?? "none")
+      Override: \(coordinator.chargeOverride.map { "\($0.kind)" } ?? "none")
+      MagSafe indicator control: \(c.indicatorControl == true)
+      Low Power Mode control: \(c.powerModeControl == true)
+      Accessory error: \(coordinator.accessoryError.map { String(describing: $0) } ?? "none")
+      System load: \(coordinator.snapshot.systemLoad.map { String(format: "%.2f W", $0) } ?? "unknown")
+      Adapter input: \(coordinator.snapshot.adapterInput.map { String(format: "%.2f W", $0) } ?? "unknown")
       Retained native limit: \(coordinator.fallbackNativeLimit.map(String.init) ?? "none")
       Root helper: \(rootStatus?.backend ?? "not connected")
       Root hardware result: \(rootStatus?.hardwareDiagnostic ?? "not tested")

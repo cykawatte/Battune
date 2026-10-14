@@ -17,7 +17,7 @@ struct SetupView: View {
   var body: some View {
     Form {
       Section(localized("setup_native")) {
-        Text(localized("setup_native_detail"))
+        Label(localized("setup_native_detail"), systemImage: "checkmark.seal")
       }
       Section(localized("setup_advanced")) {
         Text(localized("setup_advanced_detail"))
@@ -35,7 +35,7 @@ struct SetupView: View {
             set: { enabled in
               guard !enabled || helperReady else { return }
               settings.value.advancedControl = enabled
-              if settings.save() { coordinator.updateSettings(settings.value) }
+              settings.commit(to: coordinator)
             })
         )
         .disabled(!helperReady && settings.value.advancedControl != true)
@@ -49,7 +49,7 @@ struct SetupView: View {
           UNUserNotificationCenter.current().requestAuthorization(options: [.alert]) { granted, _ in
             Task { @MainActor in
               settings.value.notificationsEnabled = granted
-              _ = settings.save()
+              settings.commit(to: coordinator)
             }
           }
         }
@@ -60,7 +60,7 @@ struct SetupView: View {
       Button(localized("complete_setup")) {
         settings.value.setupComplete = true
         settings.value.onboardingComplete = true
-        if settings.save() { coordinator.updateSettings(settings.value) }
+        settings.commit(to: coordinator)
       }.buttonStyle(.borderedProminent)
     }.formStyle(.grouped)
       .task { await refresh() }
