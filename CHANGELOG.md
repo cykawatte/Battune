@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.2.0-beta.1 — 2026-10-14
+
+**AlDente Pro parity, closed-lid safety, energy efficiency and a redesigned UI.**
+
+- Fix: limits below 80% no longer leave the battery unprotected when adapter
+  mode is blocked (lid closed, helper not validated). Battune now falls back to
+  the nearest native macOS ceiling (80%) without cutting adapter input. The
+  helper restores adapter input on lid-close and power events immediately
+  instead of waiting for its 5-second watchdog. Regression test sweeps 20–79%.
+- Fix: the English `Localizable.strings` was malformed, so English systems saw
+  raw keys. Lint now validates every strings file; the forbidden-pattern check
+  no longer silently skips when ripgrep is missing.
+- New: Top Up (100% until unplugged) and Pause (hold the current level), resolved
+  in the Rust core; native mode rounds a pause up to the next macOS step.
+- New: power flow (adapter → Mac → battery in watts), time to limit / remaining.
+  macOS estimates time to 100%, Battune estimates to the active limit.
+- New: keep the native macOS limit after quitting (default on), menu-bar detail
+  (percentage, watts, temperature, time), MagSafe LED control and Low Power Mode
+  profiles (battery/adapter) via fixed, rate-limited helper operations.
+- New: `battune://` URL scheme for Shortcuts (limit, top-up, pause, resume).
+  Battery-consuming workflows still require confirmation in the app.
+- New: schedule templates (weekend full charge, Monday top-up), time picker.
+- Efficiency: one cached PowerUI client instead of a new one per read; read-back
+  only after an actual write; 5-minute fallback interval while macOS enforces the
+  limit (60 s only for adapter workflows); exact one-shot wakeups for schedules;
+  lid changes are events, not polls; helper accessory status cached.
+- UI: new popover with charge ring, limit marker, power flow, native-step chips
+  and quick actions; settings window with sidebar navigation and automatic
+  saving; statistics tiles and gradient charts. Logo and menu-bar mark unchanged.
+- Core ABI 2: `battune_override`, `battune_estimate`, `battune_native_ceiling`,
+  `battune_indicator`. The helper protocol version is 0.2.0-beta.1: reinstall the
+  matching helper after updating.
+
 ## 0.1.0-beta.1 — 2026-10-11
 
 - Prefer native charge limits even with advanced mode unlocked; preserve them across sleep and after workflows.
