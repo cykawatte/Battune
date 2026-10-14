@@ -186,6 +186,8 @@ public actor PlatformHardwareClient: HardwareClient {
   private var advanced = false
   private var adapterNativeCeiling = 100
   private var routingGeneration: UInt64 = 0
+  private var helperExtras: Capabilities?
+  private var accessoryCheck: TimeInterval?
   public init(
     native: HardwareClient = NativeChargeClient(), helper: HardwareClient = HelperClient()
   ) {
@@ -204,8 +206,25 @@ public actor PlatformHardwareClient: HardwareClient {
     }
     // Retain the nearest native ceiling during ordinary adapter charging, including
     // sleep. Only explicit calibration/discharge workflows need an unrestricted ceiling.
-    adapterNativeCeiling = workflow ? 100 : nativeLimits.filter { $0 >= limit }.min() ?? 100
-    try await selectHelper(advanced && (workflow || !nativeSupportsLimit))
+    adapterNativeCeiling =
+      workflow ? 100 : CoreBridge.nativeCeiling(limit, supported: nativeLimits) ?? 100
+    do {
+      try await selectHelper(advanced && (workflow || !nativeSupportsLimit))
+    } catch {
+      // Adapter control is blocked (lid closed, validation pending, helper missing).
+      // Protect the battery with the nearest native ceiling instead of leaving the
+      // previous macOS setting, which may be 100%. Never cuts adapter input.
+      if advanced, !workflow, !usingHelper,
+        let ceiling = CoreBridge.nativeCeiling(limit, supported: nativeLimits)
+      {
+        if selected == nil {
+          selected = native
+          routingGeneration &+= 1
+        }
+        try? await native.perform(.limit(ceiling))
+      }
+      throw error
+    }
   }
   public func configureAdvanced(_ enabled: Bool) async throws {
     advanced = enabled
@@ -238,9 +257,18 @@ public actor PlatformHardwareClient: HardwareClient {
     guard let selected else { throw BattuneError.helperUnavailable }
     let status = try await selected.status()
     var capabilities = status.capabilities
-    if !usingHelper && advanced {
+    if !usingHelper {
+      // One helper round trip per status; without advanced mode only accessories
+      // are needed, so their availability is cached for ten minutes.
+      let now = ProcessInfo.processInfo.systemUptime
+      if advanced || accessoryCheck.map({ now - $0 > 600 }) ?? true {
+        helperExtras = (try? await helper.status())?.capabilities
+        accessoryCheck = now
+      }
+      capabilities.indicatorControl = helperExtras?.indicatorControl
+      capabilities.powerModeControl = helperExtras?.powerModeControl
       // Helper loss/revalidation must not disable a working native charge ceiling.
-      if let extra = try? await helper.status(), extra.capabilities.canCalibrate {
+      if advanced, helperExtras?.canCalibrate == true {
         capabilities.forceDischarge = true
         capabilities.workflowControl = true
       }
@@ -266,5 +294,14 @@ public actor PlatformHardwareClient: HardwareClient {
   public func renewLease() async throws {
     guard let selected else { throw BattuneError.helperUnavailable }
     try await selected.renewLease()
+  }
+  // Accessories always use the helper, independent of the selected charge path.
+  public func setIndicator(_ value: Int) async throws {
+    accessoryCheck = nil
+    try await helper.setIndicator(value)
+  }
+  public func setLowPowerMode(battery: Bool, charger: Bool) async throws {
+    accessoryCheck = nil
+    try await helper.setLowPowerMode(battery: battery, charger: charger)
   }
 }

@@ -23,12 +23,8 @@ static BOOL signature(id object, SEL selector, const char *result, NSArray<NSStr
     return YES;
 }
 
-static id<BTChargeClient> makeClient(void) {
-    static void *framework;
-    static dispatch_once_t once;
-    dispatch_once(&once, ^{
-        framework = dlopen("/System/Library/PrivateFrameworks/PowerUI.framework/PowerUI", RTLD_LOCAL | RTLD_LAZY);
-    });
+static id<BTChargeClient> createClient(void) {
+    void *framework = dlopen("/System/Library/PrivateFrameworks/PowerUI.framework/PowerUI", RTLD_LOCAL | RTLD_LAZY);
     if (!framework) return nil;
     Class type = NSClassFromString(@"PowerUISmartChargeClient");
     if (!type) return nil;
@@ -45,6 +41,20 @@ static id<BTChargeClient> makeClient(void) {
         && signature(client, @selector(disableMCL:), "B", @[@"^@"]);
     if (!valid) return nil;
     return client;
+}
+
+// One validated client per process. Creating a client per call set up a fresh
+// connection to the power daemon every minute; reuse is cheaper and equivalent.
+// A failed lookup is retried on the next call instead of being cached.
+static id<BTChargeClient> makeClient(void) {
+    static id<BTChargeClient> cached;
+    static NSObject *token;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{ token = [NSObject new]; });
+    @synchronized (token) {
+        if (!cached) cached = createClient();
+        return cached;
+    }
 }
 
 int bt_native_read(int *limit, int *enabled, int *limits, int capacity, int *count) {

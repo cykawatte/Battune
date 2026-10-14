@@ -24,7 +24,7 @@ final class FakeNativeTransport: NativeChargeTransport {
 }
 
 @MainActor final class NativeChargeTests {
-  private func fixture() -> (FakeNativeTransport, URL, NativeChargeSession) {
+  func fixture() -> (FakeNativeTransport, URL, NativeChargeSession) {
     let fake = FakeNativeTransport()
     let url = FileManager.default.temporaryDirectory.appendingPathComponent(
       "Battune-native-tests-\(UUID().uuidString)/session.json")
@@ -114,6 +114,7 @@ final class FakeNativeTransport: NativeChargeTransport {
     var settings = AppSettings()
     settings.onboardingComplete = true
     settings.controlEnabled = true
+    settings.keepLimitOnQuit = false
     // Defaults include thermal protection; native macOS protection must not be
     // mistaken for a missing custom temperature sensor that blocks all charging.
     let provider = MockBackend()
@@ -167,6 +168,7 @@ final class FakeNativeTransport: NativeChargeTransport {
     settings.onboardingComplete = true
     settings.controlEnabled = true
     settings.advancedControl = true
+    settings.keepLimitOnQuit = false
     let coordinator = ChargeCoordinator(
       settings: settings, store: SettingsStore(defaults: defaults),
       history: HistoryStore(url: url.deletingLastPathComponent().appendingPathComponent("history")),
@@ -275,7 +277,7 @@ final class FakeNativeTransport: NativeChargeTransport {
     expectEqual(helper.commands.last, .reset)
     expectEqual(fake.state.limit, 90)
   }
-  private func settle(_ coordinator: ChargeCoordinator) async {
+  func settle(_ coordinator: ChargeCoordinator) async {
     for _ in 0..<500 {
       if !coordinator.busy { return }
       try? await Task.sleep(nanoseconds: 2_000_000)

@@ -88,7 +88,7 @@ identifier=org.battune.helper.local
 output="$PWD/build/$configuration/BattuneHelper.pkg"
 if [[ "$mode" == full ]]; then identifier=org.battune.beta; output="$PWD/build/$configuration/Battune-$version.pkg"; fi
 pkgbuild --root "$root" --component-plist "$staging/components.plist" --scripts "$staging/scripts" \
-  --identifier "$identifier" --version 0.1.0.4 --install-location / "$staging/component.pkg"
+  --identifier "$identifier" --version 0.2.0.5 --install-location / "$staging/component.pkg"
 cp packaging/installer-welcome.html "$staging/resources/welcome.html"
 python3 - "$staging/distribution.xml" "$identifier" <<'PY'
 import pathlib,sys
@@ -102,7 +102,7 @@ pathlib.Path(p).write_text(f'''<?xml version="1.0" encoding="utf-8"?>
 <allowed-os-versions><os-version min="13.0"/></allowed-os-versions>
 <choices-outline><line choice="default"/></choices-outline>
 <choice id="default" visible="false"><pkg-ref id="{identifier}"/></choice>
-<pkg-ref id="{identifier}" version="0.1.0.4" auth="Root">component.pkg</pkg-ref>
+<pkg-ref id="{identifier}" version="0.2.0.5" auth="Root">component.pkg</pkg-ref>
 </installer-gui-script>''')
 PY
 productbuild --distribution "$staging/distribution.xml" --resources "$staging/resources" --package-path "$staging" "$output"

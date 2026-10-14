@@ -15,6 +15,8 @@ final class MockBackend: BatteryHardwareBackend, HardwareClient, BatteryProvidin
   var failure: BattuneError?
   var disconnected = false
   var writeDelayNanoseconds: UInt64 = 0
+  var indicatorWrites: [Int] = []
+  var powerModeWrites: [[Bool]] = []
   func capabilities() -> Capabilities { supported }
   func readBatterySnapshot() -> BatterySnapshot { snapshot }
   func read() -> BatterySnapshot { snapshot }
@@ -26,6 +28,14 @@ final class MockBackend: BatteryHardwareBackend, HardwareClient, BatteryProvidin
   func status() async throws -> HelperStatus {
     if disconnected { throw BattuneError.helperUnavailable }
     return HelperStatus(backend: name, capabilities: supported)
+  }
+  func setIndicator(_ value: Int) async throws {
+    if disconnected { throw BattuneError.helperUnavailable }
+    indicatorWrites.append(value)
+  }
+  func setLowPowerMode(battery: Bool, charger: Bool) async throws {
+    if disconnected { throw BattuneError.helperUnavailable }
+    powerModeWrites.append([battery, charger])
   }
   func perform(_ command: HardwareCommand) async throws {
     if writeDelayNanoseconds > 0 { try await Task.sleep(nanoseconds: writeDelayNanoseconds) }
